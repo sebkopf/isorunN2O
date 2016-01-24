@@ -1,0 +1,38 @@
+Package: isorunN2O
+Type: Package
+Title: Process IRMS runs of N2O analyses.
+Version: 0.1
+Date: 2016-01-06
+Author: Sebastian Kopf
+Maintainer: Sebastian Kopf <seb.kopf@gmail.com>
+Description: This package facilitates the reading, processing and visualization
+    of N2O isotope data including drift correction, 17O correction and standards
+    calibration.
+License: GPL-3
+Roxygen: list(wrap = FALSE)
+VignetteBuilder: knitr
+URL: https://github.com/sebkopf/isorunN2O
+BugReports: https://github.com/sebkopf/isorunN2O/issues
+Depends:
+    isoread,
+    magrittr,
+    tidyr,
+    dplyr,
+    ggplot2,
+    plotly,
+    lazyeval
+Imports:
+    cowplot
+Suggets: testthat,
+    devtools
+LazyData: true
+Collate:
+    'O17.R'
+    'calculations.R'
+    'drift.R'
+    'loading.R'
+    'plotting.R'
+    'processing.R'
+    'package.R'
+    'reporting.R'
+RoxygenNote: 5.0.0

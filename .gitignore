@@ -1,19 +1,17 @@
 # History files
-.Rhistory
-.Rapp.history
-
-# Session Data files
-.RData
+.History
+*.Rproj
 
 # Example code in package build process
-*-Ex.R
+.R*
+*.*~
+.Rproj.user
 
-# RStudio files
-.Rproj.user/
+# Local package copy for autotest
+.local/*
 
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
+# Ignore plots created by testing functionality
+tests/testthat/*.pdf
 
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
+# Ignore example data for now (seems a bit large for git repository)
+*.dxf
