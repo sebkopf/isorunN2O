@@ -22,11 +22,11 @@ Imports:
     isoread,
     ggplot2,
     cowplot,
-    plotly
+    plotly,
+    rmarkdown,
+    knitr
 Suggets:
     testthat,
-    rmarkdown,
-    knitr,
     openxlsx,
     installr
 VignetteBuilder: knitr
