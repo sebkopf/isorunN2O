@@ -15,6 +15,6 @@ make_interactive(p = ggplot2:::last_plot(), theme = theme_grey(),
 \item{plus}{additional ggplot items to add to the plot}
 }
 \description{
-Makes a ggplot interactive using ggplotly.
+Note that in order for these plots to render properly in knitted RMarkdown documents, you have to actually load the plotly library in your code. Not doing it in this function itself because it's generally considered bad practice.
 }
 

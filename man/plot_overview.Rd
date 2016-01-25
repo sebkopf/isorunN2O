@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{plot_overview}
 \alias{plot_overview}
-\title{Generate a simple overview plot}
+\title{make sure the last plot uses ggplot instead of plotly implementation}
 \usage{
 plot_overview(data, ..., size = NULL, text = name, color = category,
   panel = category)
@@ -19,6 +19,12 @@ plot_overview(data, ..., size = NULL, text = name, color = category,
 \item{panel}{what to use for panelling (ignored if multiple y columns are supplied)}
 }
 \description{
+make sure the last plot uses ggplot instead of plotly implementation
+}
+\note{
+not sure this is the best way to deal with this, temporary fix while plotly causes trouble
+Generate a simple overview plot
+
 This functions generates an overview \code{\link{ggplot}} with either one or multiple y values (latter case makes a tiled plot and ignores the panel parameter). Plot aesthetics like size, text (for hover information if made interactive), color and panelling can be specified.
 }
 \seealso{

@@ -4,13 +4,17 @@
 \alias{evaluate_drift}
 \title{Evaluate drift}
 \usage{
-evaluate_drift(data, d15, d18, group = name, correct = FALSE,
+evaluate_drift(data, d45, d46, group = name, correct = FALSE,
   correct_with = category \%in\% c("USGS-34", "IAEA-NO3", "N2O"),
   plot = TRUE, quiet = FALSE, method = "lm", ...)
 }
 \arguments{
 \item{data}{the data frame, must be from a single run because this should really be evaluated
 for individual runs}
+
+\item{d45}{the name of the d45 column (the direct name, not in parantheses)}
+
+\item{d46}{the name of the d46 column (the direct name, not in parantheses)}
 
 \item{group}{expression for what to group by in order to normalize properly
 this is also used for color coding the data points in the generated plot (if \code{plot = TRUE})}
@@ -27,9 +31,9 @@ are linear models (lm) and local polynomial regression fitting (loess)}
 \item{...}{additional parameters for the fitting method}
 }
 \value{
-introduces the new columns d15.cor and d18.cor + parameter column p.drift
+introduces the new columns d45.cor and d46.cor + parameter column p.drift
 }
 \description{
-This function evaluates drift and can correct for it (use paramter \code{correct = TRUE}).
+This function evaluates drift and can correct for it (use parameter \code{correct = TRUE}). Note that it corrects drift based on the 45/44 and 46/44 ratio, although one could certainly debate the merits of doing the O17 correction first. Although designed to be specific for d45 and d46, it can be used on any two columns really, only note that the new columns are currently always called d45.cor and d46.cor
 }
 
