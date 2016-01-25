@@ -12,10 +12,9 @@ License: GPL-3
 Roxygen: list(wrap = FALSE)
 URL: https://github.com/sebkopf/isorunN2O
 BugReports: https://github.com/sebkopf/isorunN2O/issues
-Depends:
-    dplyr
 Imports:
     plyr,
+    dplyr,
     magrittr,
     lazyeval,
     tidyr,

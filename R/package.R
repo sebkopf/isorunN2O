@@ -14,7 +14,9 @@
 #' @include drift.R
 #' @include calculations.R
 #' @include plotting.R
-#' @importFrom tidyr gather spread extract gather_ spread_ extract_
-#' @importFrom lazyeval interp lazy_dots lazy_eval
-#' @importFrom ggplot2 ggplot aes aes_string geom_smooth geom_point theme facet_wrap theme_bw theme labs
+#' @import dplyr
+#' @import tidyr
+#' @import lazyeval
+#' @import ggplot2
 NULL
+
