@@ -27,8 +27,7 @@ Suggets:
     testthat,
     rmarkdown,
     knitr
-LazyData: true
-VignetteBuilder: rmarkdown
+VignetteBuilder: knitr
 Collate:
     'O17.R'
     'calculations.R'
