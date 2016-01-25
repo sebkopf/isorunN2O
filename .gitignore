@@ -13,5 +13,12 @@
 # Ignore plots created by testing functionality
 tests/testthat/*.pdf
 
-# Ignore example data for now (seems a bit large for git repository)
+# Ignore example raw data
 *.dxf
+
+# Ignore cache
+cache/*
+
+# Ignore exports
+*.xlsx
+
