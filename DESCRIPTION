@@ -22,13 +22,12 @@ Imports:
     isoread,
     ggplot2,
     cowplot,
-    plotly,
-    rmarkdown,
-    knitr
-Suggets:
+    plotly
+Suggests:
     testthat,
-    openxlsx,
-    installr
+    rmarkdown,
+    knitr,
+    openxlsx
 VignetteBuilder: knitr
 Collate:
     'O17.R'

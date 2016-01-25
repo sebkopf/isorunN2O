@@ -19,3 +19,10 @@ devtools::install_github("sebkopf/isorunN2O", build_vignettes = TRUE)
 ## How to use?
 
 The package includes a tutorial that introduces most functionality and provides examples of how it works and can be used. After the `isorunN2O` package is installed, the newest version of this tutorial can always be loaded up as a vignette directly in R by calling `vignette("N2O_data_reduction_tutorial")` in the command line. The RMarkdown file underlying the vignette is also available [directly in this repository](vignettes/N2O_data_reduction_tutorial.Rmd) including the resulting [HTML output](https://rawgit.com/sebkopf/isorunN2O/master/inst/doc/static/N2O_data_reduction_tutorial.html).
+
+#### Troubleshooting
+
+On Windows, the above `install_github` calls can fail because of the requirement to create zip archieves during some vignette creation steps. If this is the case, [install Rtools](https://cran.r-project.org/bin/windows/Rtools/), restart R and RStudio and try to run the installation again. 
+
+If you run into any trouble installting the packages that is not resolved easily, try installing them again without the vignettes, which are sometimes the sole culprits, i.e. `devtools::install_github(...., build_vignettes = FALSE)`, which should provide the fully functional package, just without the `vignette` tutorial (which you can still check out online as mentioned in the **How to use?** section).
+

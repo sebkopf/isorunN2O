@@ -206,7 +206,6 @@ df.cal %>% filter(category %in% c("P02E", "DPR")) %>%
 At any point during the process, if you like to export data as excel, this is easy with the `openxlsx` package (here using a couple of filter options in `select` to skip parameters and raw values, and using `arrange` to sort the data):
 
 ```{r}
-if (!requireNamespace("openxlsx", quietly = TRUE)) install.packages("openxlsx")
 df.cal %>% 
   select(-starts_with("p."), -ends_with(".raw"), -ends_with(".cor"), d15 = d15.cal, d18 = d18.cal) %>%
   arrange(category, name) %>%
