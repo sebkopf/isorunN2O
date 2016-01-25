@@ -28,7 +28,7 @@ Suggets:
     rmarkdown,
     knitr
 LazyData: true
-VignetteBuilder: knitr
+VignetteBuilder: rmarkdown
 Collate:
     'O17.R'
     'calculations.R'
