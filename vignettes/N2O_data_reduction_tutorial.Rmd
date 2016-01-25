@@ -210,7 +210,6 @@ if (!requireNamespace("openxlsx", quietly = TRUE)) install.packages("openxlsx")
 df.cal %>% 
   select(-starts_with("p."), -ends_with(".raw"), -ends_with(".cor"), d15 = d15.cal, d18 = d18.cal) %>%
   arrange(category, name) %>%
-  openxlsx::write.xlsx(file = "data_reduction_example.xlsx")
+  openxlsx::write.xlsx(file = tempfile())
 ```
-
 
