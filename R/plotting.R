@@ -1,9 +1,8 @@
 #' make sure the last plot uses ggplot instead of plotly implementation
 #' @note not sure this is the best way to deal with this, temporary fix while plotly causes trouble
-#' @export
-last_plot <- function() {
-  ggplot2::last_plot()
-}
+# last_plot <- function() {
+#   ggplot2::last_plot()
+# }
 
 #' Generate a simple overview plot
 #'
@@ -70,6 +69,9 @@ plot_overview <- function(data, ..., size = NULL, text = name, color = category,
 }
 
 #' Makes a ggplot interactive using ggplotly.
+#'
+#' Note that in order for these plots to render properly in knitted RMarkdown documents, you have to actually load the plotly library in your code. Not doing it in this function itself because it's generally considered bad practice.
+#'
 #' @param p the ggplot to make interactive, by default the last plot
 #' @param theme the theme to apply, theme_grey is default (theme_bw is hard to read)
 #' @param plus additional ggplot items to add to the plot
@@ -80,7 +82,7 @@ make_interactive <- function(p = ggplot2:::last_plot(), theme = theme_grey(), pl
     aes(size = NULL) +
     labs(size = " ") +
     theme + plus
-  suppressWarnings(p %>% ggplotly())
+  suppressWarnings(p %>% plotly::ggplotly())
 }
 
 #' Generate more elaborate interactive hover text labels

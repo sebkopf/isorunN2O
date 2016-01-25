@@ -67,10 +67,16 @@ parse_file_names <- function(data, quiet = FALSE) {
 
     # trim identical beginning and end parts
     min_chars <- min(sapply(groups, nchar))
-    front <- ldply(groups, function(i) data.frame(text = i, pos = 1:min_chars, char = strsplit(i,NULL)[[1]][1:min_chars]))
-    back <- ldply(groups, function(i) data.frame(text = i, pos = 1:min_chars, char = strsplit(i,NULL)[[1]][nchar(i):(nchar(i)-min_chars+1)]))
-    front_cut <- min(subset(ddply(front, .(pos), summarize, same = all(char == char[1])), same == FALSE)$pos) - 1
-    back_cut <- min(subset(ddply(back, .(pos), summarize, same = all(char == char[1])), same == FALSE)$pos) - 1
+    front <- plyr::ldply(groups, function(i) data.frame(
+      text = i, pos = 1:min_chars,
+      char = strsplit(i,NULL)[[1]][1:min_chars]))
+    back <- plyr::ldply(groups, function(i) data.frame(
+      text = i, pos = 1:min_chars,
+      char = strsplit(i,NULL)[[1]][nchar(i):(nchar(i)-min_chars+1)]))
+    front_cut <- min(subset(plyr::ddply(front, plyr::.(pos), summarize,
+                                        same = all(char == char[1])), same == FALSE)$pos) - 1
+    back_cut <- min(subset(plyr::ddply(back, plyr::.(pos), summarize,
+                                       same = all(char == char[1])), same == FALSE)$pos) - 1
 
     groups_trimmed <- groups
     if (front_cut > 0)

@@ -104,6 +104,7 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
 #' @param d15 the d15 column
 #' @return introduces the column d15.cal and parameters p.d15_m and p.d15_b + p.15_stds
 #' @note implement single point correction
+#' @export
 calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" = 4.7), quiet = FALSE) {
 
   if (is.null(data$category)) stop("need to have categories, please parse_file_names first")

@@ -10,22 +10,25 @@ Description: This package facilitates the reading, processing and visualization
     calibration.
 License: GPL-3
 Roxygen: list(wrap = FALSE)
-VignetteBuilder: knitr
 URL: https://github.com/sebkopf/isorunN2O
 BugReports: https://github.com/sebkopf/isorunN2O/issues
 Depends:
-    isoread,
-    magrittr,
-    tidyr,
-    dplyr,
-    ggplot2,
-    plotly,
-    lazyeval
+    dplyr
 Imports:
-    cowplot
-Suggets: testthat,
-    devtools
+    plyr,
+    magrittr,
+    lazyeval,
+    tidyr,
+    isoread,
+    ggplot2,
+    cowplot,
+    plotly
+Suggets:
+    testthat,
+    rmarkdown,
+    knitr
 LazyData: true
+VignetteBuilder: knitr
 Collate:
     'O17.R'
     'calculations.R'
