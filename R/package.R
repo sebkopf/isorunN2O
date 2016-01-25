@@ -15,7 +15,7 @@
 #' @include calculations.R
 #' @include plotting.R
 #' @import dplyr
-#' @import tidyr
+#' @importFrom tidyr gather gather_ expand expand_ spread spread_
 #' @import lazyeval
 #' @import ggplot2
 NULL

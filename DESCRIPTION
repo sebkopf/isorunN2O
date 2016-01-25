@@ -15,7 +15,6 @@ BugReports: https://github.com/sebkopf/isorunN2O/issues
 Imports:
     plyr,
     dplyr,
-    magrittr,
     lazyeval,
     tidyr,
     isoread,
