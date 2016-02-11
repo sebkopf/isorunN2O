@@ -134,7 +134,7 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
         sprintf(
           paste(
             "INFO: d15 values calibrated (new columm 'd15.cal') using %s --> stored in 'p.d15_stds'",
-            "\n      Parameter columns for calibration slope (measured/true) 'p.d15_m' (%.3f) and intercept 'p.d15_b' (%.3f) added."),
+            "\n      Parameter columns for calibration slope (measured vs. true) 'p.d15_m' (%.3f) and intercept 'p.d15_b' (%.3f) added."),
           stds.label, coef(m)[".d15.true"], coef(m)["(Intercept)"]) %>% message()
       }
 
@@ -163,7 +163,6 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
   if (is.null(data$category)) stop("need to have categories, please parse_file_names first")
   if (missing(d18)) stop("please specify the column that holds the d18 values to calibrate")
   if (missing(cell_volume)) stop("please specify the denitrifier cells volume")
-  if(is.null(data$p.run_size)) stop("paramter p.run_size is not in data set, please make sure to calculate_concentrations first")
   if (length(standards) == 1) stop("sorry, single point correction is not currently supported")
 
   stds.df <- data_frame(category = names(standards), d18.true = standards)
@@ -184,40 +183,33 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
                 call. = FALSE)
       }
 
-      # regression models (based on concentration)
-      ms <- filter(., category %in% names(standards)) %>%
-        group_by(category, name, p.run_size, .V) %>%
-        summarize(d18 = mean(.d18),
-                  C_vial = p.run_size[1] / (.V[1] + cell_volume)
-        ) %>%
+      # regression model (based on true isotopic value as well as effective concentration)
+      m <- filter(., category %in% names(standards)) %>%
         left_join(stds.df, by = "category") %>%
-        group_by(p.run_size, C_vial) %>% do({
-          m <- lm(d18.true ~ d18, data = .)
-          data_frame(p.d18_m = coef(m)["d18"],
-                     p.d18_b = coef(m)["(Intercept)"])
-        }) %>% arrange(p.run_size, desc(C_vial)) # ordering essentially from low to high injection volume
-
-
-      # the volume dependent regressions
-      mm <- lm(p.d18_m ~ C_vial, data = ms)
-      mb <- lm(p.d18_b ~ C_vial, data = ms)
-      slopes <- ms$p.d18_m %>% round(4) %>% paste(collapse = ", ")
-      intercepts <- ms$p.d18_b %>% round(4) %>% paste(collapse = ", ")
+        with(lm(.d18 ~ d18.true*.C_vial))
 
       if (!quiet) {
         sprintf(
           paste(
             "INFO: d18 values calibrated (new columm 'd18.cal') using %s --> stored in 'p.d18_stds'",
-            "\n      Effective concentration dependence of calibration regressions taken into account.",
-            "\n      Parameter columns for calibration slopes (true/measured) 'p.d18_m' (%s) and intercepts 'p.d18_b' (%s) added."),
-          stds.label, slopes, intercepts) %>% message()
+            "\n      Effective concentration dependence of calibration regression taken into account.",
+            "\n      Parameter columns for calibration (measured vs. true * concentration):",
+            "\n      'p.d18_m_true' (%.3f), 'p.d18_m_conc' (%.3f), 'p.d18_m_true:conc' (%.3f) and intercept 'p.d18_b' (%.3f) added."),
+          stds.label, coef(m)["d18.true"], coef(m)[".C_vial"],
+          coef(m)["d18.true:.C_vial"], coef(m)["(Intercept)"]) %>% message()
       }
 
       # add parameters and calculate delta
       mutate(.,
              p.d18_stds = stds.label,
-             p.d18_m = ms$p.d18_m %>% round(4) %>% paste(collapse = ", "),
-             p.d18_b = ms$p.d18_b %>% round(4) %>% paste(collapse = ", "),
-             d18.cal = .d18 * predict(mm, data.frame(C_vial = .C_vial)) + predict(mb, data.frame(C_vial = .C_vial)))
-    }) %>% select(-.d18, -.V, -.amount, -.C_vial)
+             p.d18_m_true = coef(m)["d18.true"],
+             p.d18_m_conc = coef(m)[".C_vial"],
+             `p.d18_m_true:conc` = coef(m)["d18.true:.C_vial"],
+             p.d18_b = coef(m)["(Intercept)"],
+             d18.cal =
+               (.d18 - p.d18_b - p.d18_m_conc * .C_vial)/
+               (p.d18_m_true + `p.d18_m_true:conc` *.C_vial)
+      )
+    }) %>%
+    select(-.d18, -.V, -.amount, -.C_vial)
 }
