@@ -14,7 +14,7 @@ get_isodat_data_tables <- function(isodat_files, volume = "Identifier 2", quiet 
            file = i$filename,
            date = i$creation_date,
            analysis = as.numeric(sub("^MAT253(\\d+)_.*$", "\\1", file)),
-           volume = i$data[[volume]],
+           volume = suppressWarnings(as.numeric(i$data[[volume]])),
            comment = i$data$Comment,
            preparation = i$data$Preparation)
   })) %>% as_data_frame()

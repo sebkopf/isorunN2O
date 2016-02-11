@@ -50,9 +50,9 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
   if (missing(volume)) stop("please specify the column that holds the injected volume")
 
   fields <- list(
-    `.V` = interp(~suppressWarnings(as.numeric(x)), x = substitute(volume)),
-    `.A` = interp(~x, x = substitute(area)),
-    `.dilution` = interp(~ifelse(is.na(x), 1, x), x = substitute(dilution)))
+    `.V` = interp(~var, var = substitute(volume)),
+    `.A` = interp(~var, var = substitute(area)),
+    `.dilution` = interp(~ifelse(is.na(var), 1, var), var = substitute(dilution)))
   stds_filter <- list(interp(~exp, exp = substitute(standards)))
 
   data <- data %>% do({
@@ -62,24 +62,20 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
       df %>% filter_(.dots = stds_filter) %>%
       extract(name, "conc", conc_pattern, convert = T, remove = F) %>%
       mutate( run_size = conc * .V / .dilution,
-              yield = .A / run_size,
-              p.run_size = round(run_size, 1)) %>%  # for proper grouping average to 1 decimal (assuming this is in nmol!)
+              yield = .A / run_size) %>%
       filter(!is.na(conc))
 
     if (nrow(stds) == 0)
       stop("It seems no concentration standards were found. Please check that the parameters 'conc_pattern' and 'standards' are set correctly for your naming convention.", call. = F)
 
-    # NOTE: might have to introduce this as a parameter
+    # derived parameters
     yield <- mean(stds$yield)
+    run_size <- mean(stds$run_size)
 
-    # add to whole data frame as a parameter
-    # because the run size paramter depends on injection volume there are instancs
-    # where this is not constant across a run (different amounts injected) and is
-    # therefore added in by merge
+    # mutate data frame
     df <- df %>%
-      left_join(stds %>% select(analysis, p.run_size), # units nmol
-                by = "analysis") %>%
       mutate(
+        p.run_size = run_size, # units nmol typically
         p.yield = yield, # units [Vs/nmol] single value
         amount = .A / yield,
         conc = .dilution * amount / .V ) %>%
@@ -89,11 +85,11 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
       sprintf(
         paste(
           "INFO: NOx concentrations and injection amounts (new columns 'conc' and 'amount') calculated from %s standards",
-          "\n      Parameter columns mass spec signal 'p.yield' (%.3f) and effective 'p.run_size' (%snmol) added."),
+          "\n      Parameter columns mass spec signal 'p.yield' (%.3f) and effective 'p.run_size' (%.2f) added."),
         (stds %>% group_by(conc) %>%
            summarize(label = paste0(conc[1], "uM (", n(), "x)")) %>% ungroup() %>%
            arrange(conc))$label %>% paste(collapse = " & "),
-        yield, stds$p.run_size %>% unique() %>% round(3) %>% paste(collapse = ", ")) %>% message()
+        yield, run_size) %>% message()
     }
 
     return(df)
@@ -125,7 +121,6 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
     do({
 
       # regression model
-      message("party")
       m <- filter(., category %in% names(standards)) %>%
         left_join(stds.df, by = "category") %>%
         with(lm(.d15 ~ .d15.true))
@@ -147,7 +142,12 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
     }) %>% select(-.d15)
 }
 
-#' Calibrate d18 data with the given standards
+#' Calibrate d18 data with the given standards.
+#'
+#' Uses a multivariate linear regression that takes the effective concentration
+#' in the sample vials into consideration (as well as covariance between standards
+#' and effective concentration).
+#'
 #' @param data (can be a grouped_by data set)
 #' @param d18 the d18 column
 #' @param amount the amount column
@@ -170,7 +170,7 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
   fields <- list(
     .d18 = interp(~var, var = substitute(d18)),
     .amount = interp(~var, var = substitute(amount)),
-    .V = interp(~suppressWarnings(as.numeric(x)), x = substitute(volume)),
+    .V = interp(~var, var = substitute(volume)),
     .C_vial = ~.amount / (.V + cell_volume) # effective concentration
   )
 

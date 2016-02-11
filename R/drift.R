@@ -68,8 +68,9 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
     ) -> p2
 
     print(
-      cowplot::plot_grid(p1, p2, align = "h", rel_widths = c(3,2)) +
-        cowplot::draw_label(paste("Drift correction with fitting method", method), y = 1, vjust = 1, size = 18))
+      cowplot::plot_grid(p1, p2, align = "h", rel_widths = c(3,2))
+      #+cowplot::draw_label(paste("Drift correction with fitting method", method), y = 1, vjust = 1, size = 18)
+      )
   }
 
   if (correct) {

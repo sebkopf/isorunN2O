@@ -2,7 +2,7 @@
 % Please edit documentation in R/calculations.R
 \name{calibrate_d18}
 \alias{calibrate_d18}
-\title{Calibrate d18 data with the given standards}
+\title{Calibrate d18 data with the given standards.}
 \usage{
 calibrate_d18(data, d18, amount = amount, volume = volume, cell_volume,
   standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61), quiet = FALSE)
@@ -25,6 +25,8 @@ Note: they are matched to the data by "category" (not by name)}
 introduces the column d18.cal and parameters p.d18_m and p.d18_b
 }
 \description{
-Calibrate d18 data with the given standards
+Uses a multivariate linear regression that takes the effective concentration
+in the sample vials into consideration (as well as covariance between standards
+and effective concentration).
 }
 
