@@ -1,15 +1,20 @@
 #' Combine isodat files' data tables
+#'
+#' This function combines all the data tables from a number of isodat_files
+#' into one big data frame for data processing and plotting
+#'
 #' @param isodat_files isodat objects
+#' @param volume which isodat file parameter holds the volume information
 #' @param quiet whether the function should output information messages or be quiet (default is to output)
 #' @export
-get_isodat_data_tables <- function(isodat_files, quiet = FALSE) {
+get_isodat_data_tables <- function(isodat_files, volume = "Identifier 2", quiet = FALSE) {
   df <- do.call(bind_rows, lapply(isodat_files, function(i) {
     mutate(i$get_data_table(),
            folder = basename(i$filepath),
            file = i$filename,
            date = i$creation_date,
            analysis = as.numeric(sub("^MAT253(\\d+)_.*$", "\\1", file)),
-           volume = i$data$`Identifier 2`,
+           volume = i$data[[volume]],
            comment = i$data$Comment,
            preparation = i$data$Preparation)
   })) %>% as_data_frame()

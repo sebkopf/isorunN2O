@@ -4,14 +4,17 @@
 \alias{get_isodat_data_tables}
 \title{Combine isodat files' data tables}
 \usage{
-get_isodat_data_tables(isodat_files, quiet = FALSE)
+get_isodat_data_tables(isodat_files, volume = "Identifier 2", quiet = FALSE)
 }
 \arguments{
 \item{isodat_files}{isodat objects}
 
+\item{volume}{which isodat file parameter holds the volume information}
+
 \item{quiet}{whether the function should output information messages or be quiet (default is to output)}
 }
 \description{
-Combine isodat files' data tables
+This function combines all the data tables from a number of isodat_files
+into one big data frame for data processing and plotting
 }
 
