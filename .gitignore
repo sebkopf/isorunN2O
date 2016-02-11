@@ -19,6 +19,9 @@ tests/testthat/*.pdf
 # Ignore cache
 cache/*
 
+# Ignore temp file
+temp/*
+
 # Ignore exports
 *.xlsx
 
