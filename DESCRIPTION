@@ -12,15 +12,16 @@ License: GPL-3
 Roxygen: list(wrap = FALSE)
 URL: https://github.com/sebkopf/isorunN2O
 BugReports: https://github.com/sebkopf/isorunN2O/issues
+Depends:
+    dplyr,
+    plotly,
+    ggplot2
 Imports:
     plyr,
-    dplyr,
     lazyeval,
     tidyr,
     isoread,
-    ggplot2,
-    cowplot,
-    plotly
+    cowplot
 Suggests:
     testthat,
     rmarkdown,
