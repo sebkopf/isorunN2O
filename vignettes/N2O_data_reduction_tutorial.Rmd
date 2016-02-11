@@ -26,14 +26,10 @@ This tutorial introduces the *isorunN2O* packages and provides examples of how i
 
 #### Loading the package
 
-In addition to the `isorunN2O` package, we're also loading other packages we will be using in this tutorial, `dplyr` for working with data frames, `knitr` for RMarkdown, `ggplot2` for plotting and `plotly` for interactive plots.
+To work with the `isorunN2O` package, you can now simply load it in any active R session using the command `library(isorunN2O)`. It automatically loads several packages used for working with data frames, plotting and interactive plots (type `?dplyr`, `?ggplot` or `?plotly` to access the help for these packages from within RStudio).
 
 ```{r, message=FALSE, warning=FALSE}
 library(isorunN2O)
-library(dplyr)
-library(knitr)
-library(ggplot2)
-library(plotly)
 ```
 
 #### Loading example data
@@ -53,7 +49,7 @@ The `iso_files` variable now holds all your raw data, you can look at the names 
 names(iso_files) %>% head(n=5) 
 ```
 
-You can use the file names to take a look at specific chromatograms (note that the sample data set only has the full chromatograms loaded for the first file). This is really part of the functionality in the `isoread` package so if you'd like to explore the chromatograms more, I recommend looking at the `isoread` vignettes for additional information: `browseVignettes("isoread")`.
+You can use the file names to take a look at specific chromatograms (note that the sample data set only has the full chromatograms loaded for the first file). This is really part of the functionality in the `?isoread` package so if you'd like to explore the chromatograms more, I recommend looking at the `isoread` vignettes for additional information: `browseVignettes("isoread")`.
 
 ```{r, message=FALSE, warning = FALSE, fig.width = 9, fig.height = 7}
 iso_files[["MAT25392080_P02E_run02_Conditioner-0000.dxf"]]$make_ggplot()
@@ -74,20 +70,21 @@ df.raw <- iso_files %>%
   select_N2O_peak(360) %>% 
   # focus on the columns we care about:
   rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`) %>% 
-  # first round of weeding out columns:
+  # select which columns to keep:
   select_columns(folder, date, analysis, run_number, category, name, volume, area, d45, d46) 
 ```
 
-Now to get a sense for what the data looks like, let's look at the first couple of rows and throw them in a table (`kable`). To look at the complete data frame, you can always call `View(df.raw)` or double click on the name in the *Environmen* tab on the upper right. 
+Now to get a sense for what the data looks like, let's look at the first couple of rows. To look at the complete data frame, you can always call `View(df.raw)` or double click on the name in the *Environment* tab on the upper right. 
 
 ```{r}
-df.raw %>% head(n=5) %>% kable()
+df.raw %>% head(n=5) 
 ```
 
 Additinally, `isorunN2O` provides a couple more convience functions for inspecting the data (together with the very helpful function `group_by` from the `dplyr` package). As table use `?generate_data_table` (see help for details):
 
 ```{r}
-df.raw %>% group_by(folder, category) %>% generate_data_table(area, d45, d46)  %>% kable()
+df.raw %>% group_by(category) %>% generate_data_table(area, d45, d46)
+df.raw %>% group_by(category, name) %>% generate_data_table(area, d45, d46, cutoff = 3)
 ```
 
 and visually with `?plot_overview`, which generates a [`ggplot`](http://ggplot2.org/):
@@ -105,7 +102,7 @@ df.raw %>% plot_overview(
   panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")))
 ```
 
-or as an interactive plot (mouse-over information and zooming), which is a little easier for data exploration (requires the library `plotly` to render correctly in RMarkdown):
+or as an interactive plot (mouse-over information and zooming), which is a little easier for data exploration:
 
 ```{r, cache = FALSE, fig.width = 9, fig.height = 7}
 ggplot2::last_plot() %>% make_interactive()
@@ -159,14 +156,31 @@ df.O17 <- df.drift %>%
 
 #### Calibration
 
-Last steps are collecting some additional information e.g. the background (see `?calculate_background`), calculating concentrations (see `?calculate_concentrations`) and then calibrating $\delta^{15}N$ and $\delta^{18}O$ (see `?calibrate_d15` and `?calibrate_d18`).
+Last steps are caculating the background (see `?calculate_background`), calculating concentrations (see `?calculate_concentrations`) and then calibrating $\delta^{15}N$ and $\delta^{18}O$ (see `?calibrate_d15` and `?calibrate_d18`). Note that the background calculation is not currently used for calibration since only double point is implemented. 
 
 ```{r}
 df.cal <- df.O17 %>% 
   calculate_background(area) %>%
-  calculate_concentrations(area, volume) %>%
-  calibrate_d15(d15.raw) %>%
-  calibrate_d18(d18.raw, cell_volume = 1.5) 
+  calculate_concentrations(area, volume, conc_pattern = "(\\d+)uM", 
+                           standards = category %in% c("USGS-34", "IAEA-NO3")) 
+ # calibrate_d15(d15.raw) %>%
+  # calibrate_d18(d18.raw, cell_volume = 1.5) 
+```
+
+```{r}
+df.cal %>% 
+  calibrate_d15(d15.raw, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7)) %>%
+  calibrate_d18(d18.raw, cell_volume = 1.5, standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61)) %>% 
+  group_by(category) %>% generate_data_table(cutoff = 3, d15.cal, d18.cal)
+```
+
+
+
+```{r}
+df.O17 %>% 
+  calculate_background(area) %>%
+  calculate_concentrations(area, volume)
+# %>% group_by(category, name) %>% generate_data_table(cutoff = 3, d15.raw, d15.cal, d18.raw, d18.cal)
 ```
 
 

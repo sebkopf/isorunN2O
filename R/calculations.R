@@ -63,7 +63,12 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
       extract(name, "conc", conc_pattern, convert = T, remove = F) %>%
       mutate( run_size = conc * .V / .dilution,
               yield = .A / run_size,
-              p.run_size = round(run_size, 1)) # for proper grouping average to 1 decimal (assuming this is in nmol!)
+              p.run_size = round(run_size, 1)) %>%  # for proper grouping average to 1 decimal (assuming this is in nmol!)
+      filter(!is.na(conc))
+
+    if (nrow(stds) == 0)
+      stop("It seems no concentration standards were found. Please check that the parameters 'conc_pattern' and 'standards' are set correctly for your naming convention.", call. = F)
+
     # NOTE: might have to introduce this as a parameter
     yield <- mean(stds$yield)
 
@@ -120,25 +125,25 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
     do({
 
       # regression model
+      message("party")
       m <- filter(., category %in% names(standards)) %>%
-        group_by(category) %>% summarize(.d15 = mean(.d15)) %>%
         left_join(stds.df, by = "category") %>%
-        with(lm(.d15.true ~ .d15))
+        with(lm(.d15 ~ .d15.true))
 
       if (!quiet) {
         sprintf(
           paste(
             "INFO: d15 values calibrated (new columm 'd15.cal') using %s --> stored in 'p.d15_stds'",
-            "\n      Parameter columns for calibration slope (true/measured) 'p.d15_m' (%.3f) and intercept 'p.d15_b' (%.3f) added."),
-          stds.label, coef(m)[".d15"], coef(m)["(Intercept)"]) %>% message()
+            "\n      Parameter columns for calibration slope (measured/true) 'p.d15_m' (%.3f) and intercept 'p.d15_b' (%.3f) added."),
+          stds.label, coef(m)[".d15.true"], coef(m)["(Intercept)"]) %>% message()
       }
 
       # add parameters and calculate delta
       mutate(.,
              p.d15_stds = stds.label,
-             p.d15_m = coef(m)[".d15"],
+             p.d15_m = coef(m)[".d15.true"],
              p.d15_b = coef(m)["(Intercept)"],
-             d15.cal = .d15 * p.d15_m + p.d15_b)
+             d15.cal = (.d15 - p.d15_b)/p.d15_m)
     }) %>% select(-.d15)
 }
 
