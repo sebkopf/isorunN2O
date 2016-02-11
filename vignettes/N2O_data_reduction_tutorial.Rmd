@@ -80,16 +80,16 @@ Now to get a sense for what the data looks like, let's look at the first couple 
 df.raw %>% head(n=5) 
 ```
 
-Additinally, `isorunN2O` provides a couple more convience functions for inspecting the data (together with the very helpful function `group_by` from the `dplyr` package). As table use `?generate_data_table` (see help for details):
+Additinally, `isorunN2O` provides a couple more convience functions for inspecting the data (together with the very helpful function `group_by` from the `dplyr` package). To look at the data in table format, you can use `?generate_data_table` (see help for details). Additional formatting options for data tables are provoided by the function `kable` from the knitr package, which we'll use here to get column style output.
 
 ```{r}
-df.raw %>% group_by(category) %>% generate_data_table(area, d45, d46)
-df.raw %>% group_by(category, name) %>% generate_data_table(area, d45, d46, cutoff = 3)
+df.raw %>% group_by(category) %>% generate_data_table(area, d45, d46) %>% knitr::kable()
+df.raw %>% group_by(category, name) %>% generate_data_table(area, d45, d46, cutoff = 3)%>% knitr::kable()
 ```
 
-and visually with `?plot_overview`, which generates a [`ggplot`](http://ggplot2.org/):
+For a visual first look at the data, you can use `?plot_overview`, which generates a [`ggplot`](http://ggplot2.org/):
 
-```{r first_look_at_data, fig.width = 9, fig.height = 7}
+```{r first_look_at_data, fig.width = 9, fig.height = 9}
 df.raw %>% plot_overview(d45)
 ```
 
@@ -156,45 +156,29 @@ df.O17 <- df.drift %>%
 
 #### Calibration
 
-Last steps are caculating the background (see `?calculate_background`), calculating concentrations (see `?calculate_concentrations`) and then calibrating $\delta^{15}N$ and $\delta^{18}O$ (see `?calibrate_d15` and `?calibrate_d18`). Note that the background calculation is not currently used for calibration since only double point is implemented. 
+Last steps are caculating the background (see `?calculate_background`), calculating concentrations (see `?calculate_concentrations`) and then calibrating $\delta^{15}N$ and $\delta^{18}O$ (see `?calibrate_d15` and `?calibrate_d18`). Note that the background calculation is not currently used for calibration since only multi-point calibration is implemented. 
 
 ```{r}
 df.cal <- df.O17 %>% 
   calculate_background(area) %>%
   calculate_concentrations(area, volume, conc_pattern = "(\\d+)uM", 
-                           standards = category %in% c("USGS-34", "IAEA-NO3")) 
- # calibrate_d15(d15.raw) %>%
-  # calibrate_d18(d18.raw, cell_volume = 1.5) 
-```
-
-```{r}
-df.cal %>% 
+                           standards = category %in% c("USGS-34", "IAEA-NO3")) %>% 
   calibrate_d15(d15.raw, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7)) %>%
-  calibrate_d18(d18.raw, cell_volume = 1.5, standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61)) %>% 
-  group_by(category) %>% generate_data_table(cutoff = 3, d15.cal, d18.cal)
+  calibrate_d18(d18.raw, cell_volume = 1.5, standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61)) 
 ```
-
-
-
-```{r}
-df.O17 %>% 
-  calculate_background(area) %>%
-  calculate_concentrations(area, volume)
-# %>% group_by(category, name) %>% generate_data_table(cutoff = 3, d15.raw, d15.cal, d18.raw, d18.cal)
-```
-
 
 ### Summary
 
-At the end of the data processing, a couple of ways to summarize the data, including the `generate_data_table` introduced earlier (here used to compare the raw vs. calibrated values with different groupings), but also `generate_parameter_table`, which summarizes all the parameters recorded from the data processing calls:
+At the end of the data processing, there are a couple of ways to summarize the data, including the `generate_data_table` introduced earlier (here used to compare the raw vs. calibrated values with different groupings), but also `generate_parameter_table`, which summarizes all the parameters recorded from the data processing calls:
 
 ```{r}
-df.cal %>% group_by(category) %>% generate_data_table(cutoff = 3, d15.raw, d15.cal, d18.raw, d18.cal) %>% kable()
-df.cal %>% group_by(category, name) %>% generate_data_table(cutoff = 3, d15.raw, d15.cal, d18.raw, d18.cal) %>% kable()
-df.cal %>% generate_parameter_table() %>% kable()
+df.cal %>% group_by(category) %>% 
+  generate_data_table(cutoff = 3, d15.raw, d15.cal, d18.raw, d18.cal) %>% knitr::kable() 
+df.cal %>% 
+  generate_parameter_table() %>% knitr::kable() 
 ```
 
-And of course visually in an interactive plot with additional mouseoverinfo (`text = make_itext...`):
+And of course visually, e.g. in an interactive plot with additional mouseover info (`text = make_itext...`):
 
 ```{r, cache=FALSE, fig.width = 9, fig.height = 7}
 df.cal %>% plot_overview(
