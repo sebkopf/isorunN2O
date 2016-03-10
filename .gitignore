@@ -1,9 +1,8 @@
 # History files
-.History
-*.Rproj
+.RHistory
+.RData
 
 # Example code in package build process
-.R*
 *.*~
 .Rproj.user
 
@@ -21,6 +20,9 @@ cache/*
 
 # Ignore temp file
 temp/*
+
+# Ignore raw test data
+raw_data/*
 
 # Ignore exports
 *.xlsx
