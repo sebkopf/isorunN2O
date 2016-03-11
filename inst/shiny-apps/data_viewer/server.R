@@ -362,7 +362,7 @@ server <- shinyServer(function(input, output, session) {
           select_columns(folder, file, date, analysis,
                          run_number, name, category, group,
                          volume, intensity, area, d45, d46, color) %>%
-          evaluate_drift(d45, d46, correct = input$data_drift_correction == "none", plot = FALSE,
+          evaluate_drift(d45, d46, correct = input$data_drift_correction != "none", plot = FALSE,
                          correct_with = group %in% c("Lab ref", "Standard 1", "Standard 2"),
                          method = if (input$data_drift_correction == "polynomial") "loess" else "lm") %>%
           correct_N2O_for_17O(d45.cor, d46.cor)
@@ -412,7 +412,7 @@ server <- shinyServer(function(input, output, session) {
     filename = function() {paste0(basename(get_data_folder()), "_data.csv")},
     content = function(file) {
       write.csv(
-        get_overview_data() %>% dplyr::select(-color),
+        get_overview_data() %>% dplyr::select(-color) %>% dplyr::arrange(group, name, run_number),
         file = file, row.names = FALSE)
     })
 
