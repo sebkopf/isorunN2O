@@ -26,11 +26,17 @@ Suggests:
     testthat,
     rmarkdown,
     knitr,
-    openxlsx
+    openxlsx,
+    shiny,
+    shinyFiles,
+    grid,
+    gridExtra,
+    scales
 VignetteBuilder: knitr
 Collate:
     'O17.R'
     'calculations.R'
+    'data_viewer.R'
     'drift.R'
     'loading.R'
     'plotting.R'

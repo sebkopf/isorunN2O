@@ -1,12 +1,83 @@
 library(shiny)
 library(shinyFiles)
 
+variables <-
+  c("d15N (uncalibrated)" = "d15.raw",
+    "d18O (uncalibrated)" = "d18.raw",
+    "Area All" = "area",
+    "d45 (raw)" = "d45",
+    "d45 (drift-corrected)" = "d45.cor",
+    "d46 (raw)" = "d46",
+    "d46 (drift-corrected)" = "d46.cor")
+
 # Define UI that plots the isotope label enrichment
 ui <- shinyUI(
   navbarPage(
     title = "N2O Data Viewer",
     header = "",
     id = "menu", inverse = FALSE,
+
+
+    # DATA MENU
+    tabPanel(
+      "Data", value="data",
+
+      # Tabs
+      tabsetPanel(
+        id = "data_tabs", selected = "data_folder_tab", position = "above", type = "tabs",
+
+        # data history - NOT currently implemented
+        #       tabPanel(
+        #         value = "data_history_tab", "History",
+        #         br(),
+        #         fluidRow(column(width = 5, offset = 1, htmlOutput("datahis_date_range_widget"))),
+        #         plotOutput("data_history", height="600px", width = "900px")
+        #       ),
+
+        # File Details
+        tabPanel(
+          value = "data_folder_tab", "Data",
+          br(),
+          fluidRow(
+            column(width = 3,
+                   shinyDirButton('data_folder', 'Click to select data folder',
+                                  'Please select the data folder'),
+                   br(), br(),
+                   htmlOutput("data_loaded_masses")),
+            column(width = 9, htmlOutput("data_loaded_files"))
+          ),
+          plotOutput("data_traces_plot", height="500px", width = "900px")
+        ),
+
+        # Overviews
+        tabPanel(
+          value = "data_overview", "Overview",
+          sidebarLayout(
+            sidebarPanel(
+              fluidRow(
+                column(width = 8, h4(textOutput("loaded_data_folder"))),
+                column(width = 4, align="right", actionButton("data_refresh", "Fetch new", icon("refresh")))),
+              htmlOutput("rt_selector_widget"),
+              radioButtons("data_type_selector", "Data to show:", inline = FALSE, variables),
+              radioButtons("data_drift_correction", "Drift correction:", inline = TRUE, c("none", "linear", "polynomial")),
+              htmlOutput("group_selector_widgets")
+            ),
+            mainPanel(
+              tabsetPanel(
+                tabPanel("Static Plot",
+                         downloadButton("data_overview_download", "Download Plot", icon("plot")),
+                         downloadButton("data_csv_download", "Download Grouped Data", icon("save")),
+                         plotOutput("data_overview_plot", height="600px", width = "900px")),
+                tabPanel("Interactive Plot", plotlyOutput("data_overview_iplot", height="600px", width = "900px")),
+                tabPanel("Drift Correction Plot", plotOutput("data_drift_correct_plot", height="600px", width = "700px"))
+              )
+            )
+          )
+        )
+
+      )
+    ),
+
 
     # LINEATIY ====
     tabPanel(
@@ -68,65 +139,6 @@ ui <- shinyUI(
         )
       )
     ),
-
-    # DATA MENU
-    tabPanel(
-      "Data", value="data",
-
-      # Tabs
-      tabsetPanel(
-        id = "data_tabs", selected = "data_folder_tab", position = "above", type = "tabs",
-
-        # data history - NOT currently implemented
-        #       tabPanel(
-        #         value = "data_history_tab", "History",
-        #         br(),
-        #         fluidRow(column(width = 5, offset = 1, htmlOutput("datahis_date_range_widget"))),
-        #         plotOutput("data_history", height="600px", width = "900px")
-        #       ),
-
-        # File Details
-        tabPanel(
-          value = "data_folder_tab", "Data",
-          br(),
-          fluidRow(
-            column(width = 3,
-                   shinyDirButton('data_folder', 'Click to select data folder',
-                                  'Please select the data folder'),
-                   br(), br(),
-                   htmlOutput("data_loaded_masses")),
-            column(width = 9, htmlOutput("data_loaded_files"))
-          ),
-          plotOutput("data_traces_plot", height="500px", width = "900px")
-        ),
-
-        # Overviews
-        tabPanel(
-          value = "data_overview", "Overview",
-          sidebarLayout(
-            sidebarPanel(
-              fluidRow(
-                column(width = 8, h4(textOutput("loaded_data_folder"))),
-                column(width = 4, align="right", actionButton("data_refresh", "Fetch new", icon("refresh")))),
-              radioButtons("data_type_selector", "Data to show:", inline = TRUE,
-                           c("d15N" = " 15N/14N",
-                             "d18O" = " 18O/16O",
-                             "Area All" = "Intensity All")),
-              htmlOutput("rt_selector_widget"),
-              htmlOutput("group_selector_widgets")
-            ),
-            mainPanel(
-              plotOutput("data_overview_plot", height="600px", width = "900px"),
-              downloadButton("data_overview_download", "Download Plot", icon("plot")),
-              downloadButton("data_csv_download", "Download Grouped Data", icon("save"))
-            )
-          )
-        )
-
-      )
-    ),
-
-
 
 
   # SETTINGS MENU ==========

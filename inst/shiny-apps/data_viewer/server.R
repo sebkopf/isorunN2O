@@ -1,15 +1,8 @@
 library(shiny)
 library(shinyFiles)
 library(ggplot2)
-library(RColorBrewer)
-library(grid)
-library(gridExtra)
-library(lattice)
-library(scales)
+library(dplyr)
 library(isoread)
-library(tidyr)
-#library(rCharts)
-#options(RCHART_WIDTH = 800)
 
 # make sure base directory is set
 if (!exists(".base_dir", env = .GlobalEnv))
@@ -17,7 +10,6 @@ if (!exists(".base_dir", env = .GlobalEnv))
 
 # functions
 source("utils.R")
-source("settings.R")
 source("linearity.R")
 
 # SERVER =====
@@ -26,18 +18,20 @@ server <- shinyServer(function(input, output, session) {
   # STARTUP =======
   data_dir <- .GlobalEnv$.base_dir
   data_root <- c(Data = data_dir)
+  settings_file <- file.path(data_dir, "settings.csv")
   message("\n***************************************************************",
           "\nINFO: Launching N2O Data Viewer ...",
           "\nINFO: Base directory: ", data_dir)
 
   # SETTINGS =======
-  if (!file.exists("settings.csv")) {
+  if (!file.exists(settings_file)) {
     message("INFO: No settings file exists in this workspace yet. Creating default settings.csv")
-    settings_file <- system.file("shiny-apps", "data_viewer", "default_settings.csv", package = "isorunN2O")
-    file.copy(settings_file, "settings.csv")
+    default_settings_file <- system.file("shiny-apps", "data_viewer", "default_settings.csv", package = "isorunN2O")
+    file.copy(default_settings_file, settings_file)
   }
-  settings <- read.csv("settings.csv", stringsAsFactors = FALSE)
+  settings <- read.csv(settings_file, stringsAsFactors = FALSE)
 
+  # TODO: fixme - the settings would be done much better with reactive values, currently the info message is problematic
   get_settings <- reactive({
     sets <- settings
     msg <- ""
@@ -46,7 +40,7 @@ server <- shinyServer(function(input, output, session) {
       sets <- saved$settings
       msg <- saved$msg
     }
-    return (c(dlply(sets, .(Variable), function(df) df$Value), list(msg = msg)))
+    return (c(plyr::dlply(sets, plyr::.(Variable), function(df) df$Value), list(msg = msg)))
   })
   output$settings <- renderUI(make_settings_UI(settings))
   output$settings_msg <- renderUI(HTML(get_settings()$msg))
@@ -54,7 +48,7 @@ server <- shinyServer(function(input, output, session) {
   # LINEARITY ============
   shinyDirChoose(input, 'linearity_folder', session = session, roots=data_root, filetypes=c('dxf'))
 
-  # load data
+  # load
   is_linearity_loaded <- reactive(length(get_linearity_folder()) > 0)
   get_linearity_folder <- reactive(parseDirPath(data_root, input$linearity_folder))
   get_linearity_files <- reactive({
@@ -184,11 +178,11 @@ server <- shinyServer(function(input, output, session) {
 
       message("INFO: Plotting linearity history from ", input$linhis_date_range[1], " to ", input$linhis_date_range[2])
       withProgress(message = 'Rendering plot', detail = "for linearity history...", value = 0.5, {
-        data.melt <- gather(data[c("date", "Linearity d15N slope [permil/V]", "Linearity d18O slope [permil/V]")],
+        data.melt <- tidyr::gather(data[c("date", "Linearity d15N slope [permil/V]", "Linearity d18O slope [permil/V]")],
                             variable, value, -date)
         ggplot(data.melt, aes(date, value, fill = variable)) +
           geom_point(shape = 21, size = 4) +
-          scale_x_date("Date", labels = date_format("%b %d\n%Y")) +
+          scale_x_date("Date", labels = scales::date_format("%b %d\n%Y")) +
           labs(y = "linearity slope [permil/V]", fill = "") +
           theme_bw() +
           theme(text = element_text(size = 18),
@@ -213,9 +207,8 @@ server <- shinyServer(function(input, output, session) {
   )
 
   # load data
-  is_data_loaded <- reactive(!is.null(get_data_folder()))
+  is_data_loaded <- reactive(length(get_data_folder()) > 0)
   get_data_folder <- reactive({
-    files <- parseFilePaths(data_dir, input$data_folder)
     isolate({
       data$files <- list() # reset data files everytime the input folder changes
       data$n2o_rt <- NULL
@@ -224,19 +217,21 @@ server <- shinyServer(function(input, output, session) {
       data$std2 <- NULL
       data$exclude <- NULL
     })
-    #return("test") # FIXME for testing only
-    return(sub("^(NA|\\.)?(.*)$", ".\\2", files[1,"datapath"]))
+    return(parseDirPath(data_root, input$data_folder))
   })
 
   get_data_files <- reactive({
     if ( is_data_loaded() ) {
 
+      #load("150306_test.RDATA") # FIXME for testing only
+      #data$files <- out # FIXME for testing only
+
       if (input$data_refresh > 0 && isolate(length(data$files)) > 0)
-        message("INFO: Checking for newly added files in folder ", get_data_folder())
+        message("INFO: Checking for newly added files in folder ", basename(get_data_folder()))
 
       # load all files that are not loaded yet
       isolate({
-        files <- list.files(file.path(data_dir, get_data_folder()), pattern = "\\.dxf$", full.names = TRUE)
+        files <- list.files(get_data_folder(), pattern = "\\.dxf$", full.names = TRUE)
         not_loaded_yet <- setdiff(basename(files), names(data$files)) # check which files have not been loaded yet
 
         if ( length(not_loaded_yet) > 0) {
@@ -246,16 +241,10 @@ server <- shinyServer(function(input, output, session) {
               load_isodat_files (files[basename(files) %in% not_loaded_yet], function(file, n) incProgress(1/n, detail = paste0("Reading ", file, " ...")))
             }))
         }
-        # load("test.RDATA") # FIXME for testing only
-        # data$files <- out # FIXME for testing only
       })
     }
     return(data$files)
   })
-
-  # get specific aspects of these data files
-  get_data_table <- reactive(get_isodat_data_tables(get_data_files()))
-  get_file_groups <- reactive(get_data_file_groups(get_data_files()))
 
   # show data traces
   output$data_loaded_masses <- renderUI(make_trace_selector("data_selected_mass", get_data_files()))
@@ -268,7 +257,7 @@ server <- shinyServer(function(input, output, session) {
   )
   output$data_traces_plot <- renderPlot(make_data_traces_plot())
 
-  # data selection and overview
+  # Data folder and N2O peak selection
   output$loaded_data_folder <- renderText(paste("Loaded folder:", basename(get_data_folder())))
   output$rt_selector_widget <- renderUI({
     if (is_data_loaded()) {
@@ -278,25 +267,37 @@ server <- shinyServer(function(input, output, session) {
                   min = 0, max = max_rt, step = 1, value = value, post = " s")
     }
   })
+
+  # Get data tables with parsed file names for categorization / grouping
+  get_data_table <- reactive(
+    get_data_files() %>%
+      get_isodat_data_tables() %>%
+      mutate(folder = get_data_folder() %>% basename()) %>%
+      parse_file_names()
+  )
+
+  # Group Selection widgets
   output$group_selector_widgets <- renderUI({
     if (is_data_loaded()) {
 
-      # assemble groups
-      groups <- get_file_groups()
-      sum_groups <- ddply(groups, .(group), summarize, n = length(group))
-      sum_groups <- sum_groups[order(-sum_groups$n),] # sorty by abundance
-      sum_groups <- mutate(sum_groups, label = paste0(group, "... (", n, "x)"))
+      # find available categories
+      categories <- get_data_table() %>%
+        dplyr::count(category) %>%
+        dplyr::arrange(desc(n)) %>%
+        dplyr::mutate(label = paste0(category, "... (", n, "x)"))
 
-      # define options for drop downs and make dropdowns
+      # define options for group drop downs and make dropdowns based on
+      # existing categories and default selection settings
       isolate({
 
-        options <- setNames(sum_groups$group, sum_groups$label)
-        files <- setNames(groups$file, paste0(groups$file, " (#", groups$run_number, ")"))
+        options <- setNames(categories$category, categories$label)
+        files <- get_data_table()[c("file", "run_number")] %>% unique()
+        files <- setNames(files$file, paste0(files$file, " (#", files$run_number, ")"))
 
         n2o <- isolate(data$n2o %||% grep(get_settings()$lab_ref, options, value = T))
         std1 <- isolate(data$std1 %||% grep(get_settings()$std1, options, value = T))
         std2 <- isolate(data$std2 %||% grep(get_settings()$std2, options, value = T))
-        exclude <- isolate(data$exclude %||% grep(get_settings()$exclude, groups$file, value = T))
+        exclude <- isolate(data$exclude %||% grep(get_settings()$exclude, files, value = T))
 
         # MAYBE IMPLEMENT -- chromatogram load upon double click
         # for how to implement, check: http://stackoverflow.com/questions/26208677/double-click-in-r-shiny
@@ -318,7 +319,7 @@ server <- shinyServer(function(input, output, session) {
 
   # get overview data
   get_overview_data <- reactive({
-    if ( length(get_data_files()) > 0 && !is.null(input$n2o_rt)) {
+    if ( nrow(get_data_table()) > 0 && !is.null(input$n2o_rt)) {
 
       message("INFO: Compiling overview data")
       data$n2o_rt <- input$n2o_rt
@@ -326,39 +327,45 @@ server <- shinyServer(function(input, output, session) {
       data$std1 <- input$std1_select
       data$std2 <- input$std2_select
       data$exclude <- input$exclude_select
+      input$data_drift_correction
 
       isolate({
-        # get N2O peaks
-        dt <- subset(isolate(get_data_table()), Start <= data$n2o_rt & End >= data$n2o_rt)
-        dt <- merge(dt, isolate(get_file_groups()), by = "file")
 
+        # N2O peak selection
+        dt <- get_data_table() %>%
+            select_N2O_peak(input$n2o_rt)
         if (nrow(dt) == 0)
           stop("No peaks found at this retention time. Please check where the N2O peaks are.")
 
-        # determine grouping a
-        is_in_group <- function(group, groups) {
-          grepl(paste0("(", paste(groups, collapse = "|"), ")"), group)
-        }
-
-        dt <- mutate(dt,
-                     category =
-                       ifelse(is_in_group(group, data$n2o), "Lab ref",
-                              ifelse(is_in_group(group, data$std1), "Standard 1",
-                                     ifelse(is_in_group(group, data$std2), "Standard 2",
-                                            "Samples"))),
-                     color = ifelse(category == "Samples", "Samples", name))
+        # determine grouping (for panels)
+        dt <- dt %>%
+          mutate(
+            group =
+              ifelse(category %in% data$n2o, "Lab ref",
+                     ifelse(category %in% data$std1, "Standard 1",
+                            ifelse(category %in% data$std2, "Standard 2",
+                                   "Samples"))),
+            color = ifelse(group == "Samples", "Samples", name))
 
         # remove excluded
         if (length(data$exclude) > 0)
-          dt <- mutate(dt, category = ifelse(file %in% data$exclude, "Excluded", category))
+          dt <- mutate(dt, group = ifelse(file %in% data$exclude, "Excluded", group))
 
-        #FIXME
-        message(names(dt))
-
-        # factor category for right order
-        dt <- mutate(dt, category = factor(category,
+        # factor groups for right order
+        dt <- mutate(dt, group = factor(group,
                 levels = c("Lab ref", "Standard 1", "Standard 2", "Samples", "Excluded")))
-        dt <- dt[with(dt, order(category, run_number)),]
+        dt <- dt[with(dt, order(group, run_number)),]
+
+        # data frame simplification and processing
+        dt <- dt %>%
+          dplyr::rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`, intensity = `Ampl 44`) %>%
+          select_columns(folder, file, date, analysis,
+                         run_number, name, category, group,
+                         volume, intensity, area, d45, d46, color) %>%
+          evaluate_drift(d45, d46, correct = input$data_drift_correction == "none", plot = FALSE,
+                         correct_with = group %in% c("Lab ref", "Standard 1", "Standard 2"),
+                         method = if (input$data_drift_correction == "polynomial") "loess" else "lm") %>%
+          correct_N2O_for_17O(d45.cor, d46.cor)
 
         return(dt)
       })
@@ -376,21 +383,16 @@ server <- shinyServer(function(input, output, session) {
 
       if (nrow(dt) > 0) {
         message("INFO: Plotting data overview")
-        dt <- mutate(dt, size = ifelse(category == "Excluded", median(`Intensity All`), `Intensity All`))
-
-        # y choice (FIXME: abstract this out as "available data columns" and also use in the csv export!)
-        y_choices <- c(" 15N/14N" = "d15N [permil]", " 18O/16O" = "d18O [permil]", "Intensity All" = "Area All [Vs]")
+        dt <- mutate(dt, size = ifelse(group == "Excluded", median(area), area))
         dt$y <- dt[[input$data_type_selector]]
 
         setProgress(0.5, "Constructing plot")
-        p <- ggplot(dt, aes(run_number, y, fill = color, size = size)) +
-          geom_point(shape = 21) +
-          scale_x_continuous(breaks = seq(min(dt$run_number), max(dt$run_number), by = 4)) +
-          scale_size_continuous(range = c(1,4)) +
-          theme_bw() + labs(x = "Run #", y = y_choices[[input$data_type_selector]], fill = "", size = "Area All [Vs]") +
-          theme(text = element_text(size = 18), axis.text.x = element_text(angle = 60, hjust = 1),
-                legend.position = "right", legend.direction = "vertical") +
-          facet_grid(category~., scales = "free_y")
+        p <- dt %>%
+          plot_overview(
+            y, size = size,
+            text = make_itext(name, d15 = round(d15.raw, 2), d18 = round(d18.raw, 2), area = round(area,1)),
+            color = color, panel = group) +
+          labs(y = input$data_type_selector, size = "Area All [Vs]")
         setProgress(0.8, "Rendering plot")
         return(p)
       } else
@@ -400,7 +402,7 @@ server <- shinyServer(function(input, output, session) {
   output$data_overview_plot <- renderPlot(make_overview_plot())
 
   output$data_overview_download <- downloadHandler(
-    filename = function() {paste0(basename(get_data_folder()), "_overview.pdf")},
+    filename = function() {paste0(basename(get_data_folder()), "_", input$data_type_selector, "_overview.pdf")},
     content = function(file) {
       device <- function(..., version="1.4") grDevices::pdf(..., version=version)
       ggsave(file = file, plot = make_overview_plot(), width = 12, height = 8, device = device)
@@ -410,15 +412,31 @@ server <- shinyServer(function(input, output, session) {
     filename = function() {paste0(basename(get_data_folder()), "_data.csv")},
     content = function(file) {
       write.csv(
-        mutate(get_overview_data(),
-               `d15N [permil]` = ` 15N/14N`, `d18O [permil]` = ` 18O/16O`,
-               `Ampl 44 [mV]` = `Ampl 44`, `Area All [Vs]` = `Intensity All`)[
-                 c("category", "analysis", "run_number", "name", "volume",
-                   "Ampl 44 [mV]", "Area All [Vs]",
-                   "d 45N2O/44N2O", "d 46N2O/44N2O",
-                   "d15N [permil]", "d18O [permil]", "file")],
+        get_overview_data() %>% dplyr::select(-color),
         file = file, row.names = FALSE)
     })
+
+  # interactive plot =========
+
+  output$data_overview_iplot <- renderPlotly({
+    make_overview_plot() %>% make_interactive()
+  })
+
+  # drift correction plot ========
+  output$data_drift_correct_plot <- renderPlot ({
+    if (input$data_drift_correction == "none") {
+      plot.new()
+      ggplot() + theme_bw() + annotate("text", 0.5, 0.5, label = "no drift correction", size = 20) +
+        theme(text = element_blank())
+    } else {
+      get_overview_data() %>%
+        mutate(bla = as.character(group)) %>%
+        evaluate_drift(d45, d46, correct = FALSE, plot = TRUE,
+                       correct_with = bla %in% c("Lab ref", "Standard 1", "Standard 2"),
+                       method = if (input$data_drift_correction == "polynomial") "loess" else "lm")
+    }
+  })
+
 
 #   # MORRIS chart (interactive rchart) - but is too slow
 #   output$massPlot <- renderChart2({

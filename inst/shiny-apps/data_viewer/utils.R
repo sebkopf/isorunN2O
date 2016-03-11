@@ -4,6 +4,65 @@
   if (!is.null(a)) a else b
 }
 
+# SETTINGS =========
+
+#' Functions for the settings tab
+
+#' Construct the UI for changing the settings
+make_settings_UI <- function(settings) {
+  settings <- subset(settings, Editable == "yes")
+  r <- list()
+  for (i in 1:nrow(settings)) {
+    r <- c(r,
+           with(settings[i,], {
+             list(
+               if (Type == "numeric")
+                 numericInput(paste0("setting_", Variable),
+                              paste0(Label, " [", Units, "]"),
+                              value = Value)
+               else textInput(paste0("setting_", Variable), Label, value = Value)
+             )
+           })
+    )
+  }
+
+  return(r)
+}
+
+#' Save the settings
+#' @param the settings data frame
+#' @param the input variables
+#' @param file the name where to save the settings
+#' @return a list with the current settings and an error/success message
+save_settings <- function(settings, input, file = "settings.csv") {
+  error <<- c()
+  for (i in 1:nrow(settings)) {
+    settings[i, "Value"] <-
+      with(settings[i,], {
+        if (Editable == "yes") {
+          new_val <- input[[paste0("setting_", Variable)]]
+          if (Type == "numeric" && is.na(new_val)) {
+            error <<- c(error, paste0(Label, " is not a valid number"))
+            new_val <- Value # go back to old value
+          }
+          return(new_val)
+        } else
+          return (Value)
+      })
+  }
+
+  if (length(error) > 0) {
+    msg <- paste(c("Settings could not be saved, the following errors occured:", error), collapse = "<br/>")
+  } else {
+    message("INFO: Saving settings...")
+    write.csv(settings, file = file, row.names = FALSE)
+    msg <- "INFO: Settings saved succesfully."
+  }
+  return(list(settings = settings, msg = msg))
+}
+
+
+
 # DATA ===============
 
 #' Load isodat files
@@ -13,22 +72,10 @@ load_isodat_files <- function(files, progress = NULL, quiet = T) {
   iso_files <- list()
   for (file in files) {
     if (!is.null(progress)) progress(basename(file), length(files))
-    iso_files <- c(iso_files, isoread(file, type = "CFLOW", quiet = quiet))
+    iso_files <- c(iso_files, isoread::isoread(file, type = "CFLOW", quiet = quiet))
   }
   names(iso_files) <- sapply(iso_files, function(i) i$filename)
   return(iso_files)
-}
-
-#' Combine isodat files' data tables
-#' @param isodat_files isodat objects
-get_isodat_data_tables <- function(isodat_files, select = names(isodat_files[[1]]$get_data_table())) {
-  do.call(rbind, lapply(isodat_files, function(i) {
-    mutate(i$get_data_table()[select],
-           file = i$filename,
-           date = i$creation_date,
-           analysis = as.numeric(sub("^MAT253(\\d+)_.*$", "\\1", file)),
-           volume = i$data$`Identifier 2`)
-  }))
 }
 
 #' get a subset of the data table and prepare it for plotting by assigning x and y

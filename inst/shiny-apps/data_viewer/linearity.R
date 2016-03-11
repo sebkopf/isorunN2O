@@ -11,7 +11,6 @@ linearity_record_csv <- "linearity_history_DO_NOT_EDIT_BY_HAND.csv"
 linearity_base_plot <-
   ggplot(NULL, aes(x, y, fill = !include, shape = !include)) +
   scale_shape_manual (values = c(21, 22)) +
-  scale_fill_manual (values = brewer.pal(9, "Set1")[c(2,1)]) +
   theme_bw() + theme(legend.position = "none", axis.title = element_text(size = 20)) +
   labs(x = "Amplitude mass 44 [V]") + facet_wrap(~analysis)
 
@@ -52,16 +51,17 @@ make_linearity_plot <- function(name, df, x_range) {
 #' get ON/OFF table
 get_on_off_table <- function(df, pattern = "ON OFF.dxf") {
   on_off_table <- subset(df, grepl(pattern, file))
-  if (nrow(on_off_table) > 0)
-    ddply(
-     on_off_table,
-      .(file),
-      summarise,
+  if (nrow(on_off_table) > 0) {
+    my_db <<- on_off_table
+    on_off_table %>%
+    dplyr::group_by(file) %>%
+    dplyr::summarize(
       `ON/OFF File` = sub("^(MAT\\d+).*", "\\1", unique(file)),
       `Std. Dev. d18O` = signif(sd(` 18O/16O`), 3),
       `Std. Dev. d15N` = signif(sd(` 15N/14N`), 3)
-    )[-1]
-  else
+    ) %>%
+    select(-1)
+  } else
     return(on_off_table)
 }
 
@@ -82,17 +82,17 @@ generate_linearity_summary <- function(
   # make pdf
   message("INFO: Saving summary pdf to ", file)
   pdf(file, width = width, height = height)
-  grid.arrange(
+  gridExtra::grid.arrange(
     top = paste0("\nSummary for ON/OFF and linearity test for folder '", basename(folder), "'",
                  "\n", reg_O$msg, "\n", reg_N$msg, "\n"),
     if (nrow(on_off_table) > 0)
-      tableGrob(on_off_table,
-                theme = ttheme_default(
+      gridExtra::tableGrob(on_off_table,
+                theme = gridExtra::ttheme_default(
                   core = list(fg_params=list(cex = 0.7)),
                   colhead = list(fg_params=list(cex = 0.7))),
                 rows = NULL)
     else
-      textGrob("no ON/OFF data available")
+      grid::textGrob("no ON/OFF data available")
     ,
     plot_O + theme(axis.title = element_text(size = font_size)),
     plot_N + theme(axis.title = element_text(size = font_size)),

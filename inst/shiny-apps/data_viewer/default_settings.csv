@@ -3,7 +3,7 @@
 "cutoff_O_max","d18O: default upper linearity intensity cutoff","20","V","numeric","yes"
 "cutoff_N_min","d15N: default lower linearity intensity cutoff","2","V","numeric","yes"
 "cutoff_N_max","d15N: default upper linearity intensity cutoff","20","V","numeric","yes"
-"n2o_rt","Retention time of N2O","360","s","numeric","yes"
+"n2o_rt","Retention time of N2O","364","s","numeric","yes"
 "lab_ref","Lab reference standard","N2O","","character","yes"
 "std1","Name of isotopic standard #1","IAEA","","character","yes"
 "std2","Name of isotopic standard #2","USGS","","character","yes"
