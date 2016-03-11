@@ -11,8 +11,7 @@
 #' @export
 run_data_viewer <- function(base_dir = ".", ...) {
 
-  #app_dir <- system.file("shiny-apps", "data_viewer", package = "isorunN2O")
-  app_dir <- "/Users/sk/Dropbox/Tools/software/R/isorunN2O/inst/shiny-apps/data_viewer"
+  app_dir <- system.file("shiny-apps", "data_viewer", package = "isorunN2O")
   if (app_dir == "")
     stop("Could not find data viewer directory. Try re-installing `isorunN2O`.", call. = FALSE)
 
