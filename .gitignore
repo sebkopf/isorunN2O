@@ -1,6 +1,7 @@
 # History files
 .RHistory
 .RData
+.Rapp.history
 
 # Example code in package build process
 *.*~
