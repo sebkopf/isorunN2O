@@ -9,21 +9,9 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-
-## Installation
-
-This package is based on the functionality provided by the [`isoread`](https://github.com/sebkopf/isoread#isoread) and [`isotopia`](https://github.com/sebkopf/isotopia#isotopia) packages to load IRMS data directly from their raw data files. All three can be installed directly from GitHub using the `devtools` package:
-
-```{r, eval = FALSE}
-install.packages("devtools")
-devtools::install_github("sebkopf/isotopia", build_vignettes = TRUE)
-devtools::install_github("sebkopf/isoread", build_vignettes = TRUE)
-devtools::install_github("sebkopf/isorunN2O", build_vignettes = TRUE)
-```
-
 ## Tutorial
 
-This tutorial introduces the *isorunN2O* packages and provides examples of how it works and can be used. After the `isorunN2O` package is installed, the newest version of this tutorial can always be loaded up as a vignette directly in R by calling `vignette("N2O_data_reduction_tutorial")` in the command line.
+This tutorial introduces the **isorunN2O** packages and provides examples of how it works and can be used. Plese install `isorunN2O` following the [instructions on GitHub](https://github.com/sebkopf/isorunN2O), the newest version of this tutorial can always be loaded up as a vignette directly in R by calling `vignette("N2O_data_reduction_tutorial")` in the command line.
 
 #### Loading the package
 
@@ -183,10 +171,11 @@ And of course visually, e.g. in an interactive plot with additional mouseover in
 
 ```{r, cache=FALSE, fig.width = 9, fig.height = 7}
 df.cal %>% plot_overview(
-  d15.cal, 
+  d15.cal, size = amount,
   text = make_itext(name, d15 = round(d15.cal, 2), d18 = round(d18.cal, 2), amount = round(amount,3)),
   color = ifelse(category %in% c("IAEA-NO3", "USGS-34"), name, category), 
-  panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34"))) %>%
+  panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34"))
+  ) %>%
   make_interactive()
 ```
 
@@ -208,6 +197,6 @@ At any point during the process, if you like to export data as excel, this is ea
 df.cal %>% 
   select(-starts_with("p."), -ends_with(".raw"), -ends_with(".cor"), d15 = d15.cal, d18 = d18.cal) %>%
   arrange(category, name) %>%
-  openxlsx::write.xlsx(file = tempfile())
+  openxlsx::write.xlsx(file = "export.xlsx")
 ```
 
