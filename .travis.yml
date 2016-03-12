@@ -6,6 +6,7 @@ r_github_packages:
   - jimhester/covr
   - sebkopf/isotopia
   - sebkopf/isoread
+  - ropensci/plotly
 
 after_success:
   - Rscript -e 'covr::codecov()'
