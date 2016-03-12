@@ -437,17 +437,4 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-
-#   # MORRIS chart (interactive rchart) - but is too slow
-#   output$massPlot <- renderChart2({
-#     iso_file <- isoread(file.path(data_dir, "MAT25391411_ON OFFS_linearity.dxf"), type = "CFLOW", read_mass_data = TRUE)
-#
-#     m1 <- mPlot(x="time", y=c("mass44", "mass45", "mass46"), data =
-#                   mutate(iso_file$massData, time = round(time), mass44 = round(mass44), mass45 = round(mass45), mass46 = round(mass46)),
-#                 type="Line", parseTime=FALSE)
-#     m1$set(pointSize = 0, lineWidth = 1)
-#     #m1$set(height=500 width = 500) # works
-#     return(m1)
-#   })
-
 })
