@@ -10,14 +10,14 @@
 #'
 #' @param ... the y value columns
 #' @param size the data point size aesthetic
-#' @param text the hover text for data points (see \code{\link{make_itext}} for constructing more complex hover text)
+#' @param text the tooltip text for data points (see \code{\link{make_itext}} for constructing more complex hover text)
 #' @param color what to use for coloring
 #' @param panel what to use for panelling (ignored if multiple y columns are supplied)
 #'
 #' @seealso \code{\link{make_interactive}}
 #' @seealso \code{\link{make_itext}}
 #' @export
-plot_overview <- function(data, ..., size = NULL, text = name, color = category, panel = category) {
+plot_overview <- function(data, ..., size = NULL, text = NULL, color = category, panel = category) {
 
   # allow multiple y values (will be gathered if there is more than 1)
   ys <- lazyeval::lazy_dots(...)
@@ -26,44 +26,70 @@ plot_overview <- function(data, ..., size = NULL, text = name, color = category,
   if (length(missing <- setdiff(c("run_number"), names(data))) > 0)
     stop("Required colums do not exist: ", paste(missing, collapse = ", "))
 
-  # determine y
-  if (length(ys) == 1) { # only 1 y
-    fields <- list (panel = interp(~var, var = substitute(panel)))
-    data <- data %>% mutate_ (.dots = fields) # create panel field
-    y <- deparse(ys[[1]]$expr) # just take first y expression
-  } else { # multiple ys
-    fields <- lapply(ys, function(y)
+  # aes
+  ylab <- deparse(ys[[1]]$expr)
+  fields <- list (
+    x = interp(~run_number),
+    y = interp(~var, var = ys[[1]]$expr),
+    color = interp(~var, var = substitute(color)),
+    panel = interp(~var, var = substitute(panel))
+  )
+
+  if (!missing(size)) {
+    fields$size <- interp(~var, var = substitute(size))
+  }
+
+  if (!missing(text)) {
+    fields$label = interp(~var, var = substitute(text))
+  }
+
+  # multiple (paneled) ys
+  if (length(ys) > 1) {
+    dots <- lapply(ys, function(y)
       list(interp(~var, var = y$expr)) %>%
         setNames(deparse(y$expr))) %>% unlist()
     data <- data %>%
-      mutate_(.dots = fields) %>% # create y fields
-      gather_(".panel", ".value", names(fields)) %>% # gather y fields
-      mutate(panel = .panel, value = .value) # using . notation just in case already in use
-    y <- "value"
+      mutate_(.dots = dots) %>% # create y fields
+      gather_(".panel", ".value", names(dots)) %>%  # gather y fields
+      mutate(panel = .panel, value = .value) # to be on the safe side during gather
+
+    # update aesthetics
+    ylab <- ""
+    fields$y = interp(~value)
+    fields$panel = interp(~panel)
   }
 
-  p <- data %>% mutate(.size = 10) %>%
-    ggplot() +
-    aes_string(x = "run_number", y = y,
-               fill = deparse(substitute(color)), text = deparse(substitute(text))) +
-    labs(x = "Run #", fill = "") + theme_bw() +
+  # base plot
+  p <- data %>%
+    mutate_(.dots = fields) %>%
+    ggplot()
+
+  # tooltip
+  if (!missing(text)) {
+    p <- p + aes(text = label)
+  }
+
+  # size
+  if (!missing(size)) {
+    p <- p + aes(size = size) +
+      scale_size_continuous(range = c(1,5)) +
+      geom_point(shape = 21, colour = "black") +
+      labs(size = deparse(substitute(size)))
+  } else {
+    p <- p + geom_point(shape = 21, colour = "black", size = 4)
+  }
+
+  # main plot
+  p <- p +
+    aes(x = x, y = y, fill = color) +
+    labs(x = "Run #", y = ylab, fill = "") + theme_bw() +
     theme(text = element_text(size = 18), axis.text.x = element_text(angle = 60, hjust = 1),
           legend.position = "right", legend.direction = "vertical") +
     facet_grid(panel~., scales = "free_y")
 
-  # size
-  if (!missing(size)) {
-    p <- p + aes_string(size = deparse(substitute(size))) +
-      scale_size_continuous(range = c(1,5)) +
-      geom_point(shape = 21, colour = "black")
-  } else {
-    p <- p + aes(size = 10) +
-    scale_size_continuous(range = c(3,5)) +
-    geom_point(shape = 21, colour = "black") +
-    guides(size = FALSE)
-  }
-
-    #geom_point(shape = 21, colour = "black", size = 5)
+  # NOTE: this is to avoid issues with plotly (make sure the mappings have class uneval)
+  if (!is(p$mappig, "uneval"))
+    class(p$mapping) <- "uneval"
 
   return(p)
 }
@@ -73,16 +99,30 @@ plot_overview <- function(data, ..., size = NULL, text = name, color = category,
 #' Note that in order for these plots to render properly in knitted RMarkdown documents, you have to actually load the plotly library in your code. Not doing it in this function itself because it's generally considered bad practice.
 #'
 #' @param p the ggplot to make interactive, by default the last plot
-#' @param theme the theme to apply, theme_grey is default (theme_bw is hard to read)
+#' @param tooltip vector of mouseover text to include (x, y, size, fill, text) and
+#'    which order. By default, shows only "text" aesthetic if it is mapped, otherwise shows all.
+#' @param theme the theme to apply, theme_bw is the default
 #' @param plus additional ggplot items to add to the plot
 #' @export
-make_interactive <- function(p = ggplot2:::last_plot(), theme = theme_grey(), plus = NULL) {
+make_interactive <- function(p = ggplot2:::last_plot(), tooltip = tooltip_default(),
+                             theme = theme_bw(), plus = NULL) {
+
+  # default tooltips
+  tooltip_default <- function() {
+    if ( "text" %in% names(p$mapping))
+      return("text")
+    else
+      return("all")
+  }
+
   # replace with identiy size scale
-  p <- p %+%
-    aes(size = NULL) +
-    labs(size = " ") +
-    theme + plus
-  suppressWarnings(p %>% plotly::ggplotly())
+  p <- p + theme + plus
+
+  # NOTE: this is to avoid issues with plotly (make sure the mappings have class uneval)
+  if (!is(p$mappig, "uneval"))
+    class(p$mapping) <- "uneval"
+
+  suppressWarnings(p %>% plotly::ggplotly(tooltip = tooltip))
 }
 
 #' Generate more elaborate interactive hover text labels
