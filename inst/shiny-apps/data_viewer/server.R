@@ -1,5 +1,4 @@
 library(shiny)
-library(shinyFiles)
 library(ggplot2)
 library(dplyr)
 library(isoread)
@@ -11,6 +10,7 @@ if (!exists(".base_dir", env = .GlobalEnv))
 # functions
 source("utils.R")
 source("linearity.R")
+source("folder_browser.R")
 
 # SERVER =====
 server <- shinyServer(function(input, output, session) {
@@ -46,11 +46,16 @@ server <- shinyServer(function(input, output, session) {
   output$settings_msg <- renderUI(HTML(get_settings()$msg))
 
   # LINEARITY ============
-  shinyDirChoose(input, 'linearity_folder', session = session, roots=data_root, filetypes=c('dxf'))
+  linearity_folder <- callModule(folderSelector, "linearity_folder", root = data_dir,
+                            folders_sort_desc = TRUE,
+                            files_pattern = "\\.dxf", size = 10)
 
   # load
   is_linearity_loaded <- reactive(length(get_linearity_folder()) > 0)
-  get_linearity_folder <- reactive(parseDirPath(data_root, input$linearity_folder))
+  get_linearity_folder <- reactive({
+    validate(need(input[["linearity_folder-open"]] > 0, message = FALSE))
+    return(isolate(linearity_folder()))
+  })
   get_linearity_files <- reactive({
     if ( is_linearity_loaded() ) {
       message("INFO: Loading linearity data from folder ", get_linearity_folder())
@@ -195,7 +200,10 @@ server <- shinyServer(function(input, output, session) {
 
 
   # DATA ==================
-  shinyDirChoose(input, 'data_folder', session = session, roots=data_root, filetypes=c('dxf'))
+
+  data_folder <- callModule(folderSelector, "data_folder", root = data_dir,
+                            folders_sort_desc = TRUE,
+                            files_pattern = "\\.dxf", size = 10)
 
   data <- reactiveValues(
     files = list(), # stores the isodat files
@@ -209,6 +217,7 @@ server <- shinyServer(function(input, output, session) {
   # load data
   is_data_loaded <- reactive(length(get_data_folder()) > 0)
   get_data_folder <- reactive({
+    validate(need(input[["data_folder-open"]] > 0, message = FALSE))
     isolate({
       data$files <- list() # reset data files everytime the input folder changes
       data$n2o_rt <- NULL
@@ -217,7 +226,7 @@ server <- shinyServer(function(input, output, session) {
       data$std2 <- NULL
       data$exclude <- NULL
     })
-    return(parseDirPath(data_root, input$data_folder))
+    return(isolate(data_folder()))
   })
 
   get_data_files <- reactive({

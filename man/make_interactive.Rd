@@ -4,13 +4,16 @@
 \alias{make_interactive}
 \title{Makes a ggplot interactive using ggplotly.}
 \usage{
-make_interactive(p = ggplot2:::last_plot(), theme = theme_grey(),
-  plus = NULL)
+make_interactive(p = ggplot2:::last_plot(), tooltip = tooltip_default(),
+  theme = theme_bw(), plus = NULL)
 }
 \arguments{
 \item{p}{the ggplot to make interactive, by default the last plot}
 
-\item{theme}{the theme to apply, theme_grey is default (theme_bw is hard to read)}
+\item{tooltip}{vector of mouseover text to include (x, y, size, fill, text) and
+which order. By default, shows only "text" aesthetic if it is mapped, otherwise shows all.}
+
+\item{theme}{the theme to apply, theme_bw is the default}
 
 \item{plus}{additional ggplot items to add to the plot}
 }

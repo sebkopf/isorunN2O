@@ -18,8 +18,11 @@ run_data_viewer <- function(base_dir = ".", ...) {
   if (!file.exists(base_dir))
     stop("Could not find base directory '", base_dir, " from the current working directory: ", getwd())
 
-  # store base_dir for the shiny app
-  .GlobalEnv$.base_dir <- file.path(getwd(), base_dir)
+  # store base_dir for the shiny
+  if (R.utils::isAbsolutePath(base_dir))
+    .GlobalEnv$.base_dir <- base_dir
+  else
+    .GlobalEnv$.base_dir <- R.utils::filePath(getwd(), base_dir)
   on.exit(rm(.base_dir, envir=.GlobalEnv))
 
   # start app

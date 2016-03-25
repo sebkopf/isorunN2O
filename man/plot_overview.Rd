@@ -4,7 +4,7 @@
 \alias{plot_overview}
 \title{make sure the last plot uses ggplot instead of plotly implementation}
 \usage{
-plot_overview(data, ..., size = NULL, text = name, color = category,
+plot_overview(data, ..., size = NULL, text = NULL, color = category,
   panel = category)
 }
 \arguments{
@@ -12,7 +12,7 @@ plot_overview(data, ..., size = NULL, text = name, color = category,
 
 \item{size}{the data point size aesthetic}
 
-\item{text}{the hover text for data points (see \code{\link{make_itext}} for constructing more complex hover text)}
+\item{text}{the tooltip text for data points (see \code{\link{make_itext}} for constructing more complex hover text)}
 
 \item{color}{what to use for coloring}
 

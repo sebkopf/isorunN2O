@@ -1,5 +1,5 @@
 library(shiny)
-library(shinyFiles)
+source("folder_browser.R")
 
 variables <-
   c("d15N (uncalibrated)" = "d15.raw",
@@ -40,8 +40,14 @@ ui <- shinyUI(
           br(),
           fluidRow(
             column(width = 3,
-                   shinyDirButton('data_folder', 'Click to select data folder',
-                                  'Please select the data folder'),
+
+                   modalFolderSelectorInput("data_folder", size = "large",
+                                            folders_label = "Folders",
+                                            files_label = "MAT files",
+                                            dialog_open_label = "Select data folder",
+                                            dialog_close_label = "Open",
+                                            dialog_close_id = "open"),
+
                    br(), br(),
                    htmlOutput("data_loaded_masses")),
             column(width = 9, htmlOutput("data_loaded_files"))
@@ -93,8 +99,14 @@ ui <- shinyUI(
           br(),
           fluidRow(
             column(width = 3,
-                   shinyDirButton('linearity_folder', 'Click to select data folder',
-                                  'Please select the linearity & ON/OFF folder'),
+
+                   modalFolderSelectorInput("linearity_folder", size = "large",
+                                            folders_label = "Folders",
+                                            files_label = "MAT files",
+                                            dialog_open_label = "Select linearity & ON/OFF folder",
+                                            dialog_close_label = "Open",
+                                            dialog_close_id = "open"),
+
                    br(), br(),
                    htmlOutput("loaded_masses")),
             column(width = 9, htmlOutput("loaded_files"))

@@ -17,6 +17,7 @@ Depends:
     plotly (>= 3.3.1),
     ggplot2 (>= 2.1.0)
 Imports:
+    R.utils,
     plyr,
     lazyeval,
     tidyr,
@@ -28,7 +29,7 @@ Suggests:
     knitr,
     openxlsx,
     shiny,
-    shinyFiles,
+    shinyBS,
     grid,
     gridExtra,
     scales
