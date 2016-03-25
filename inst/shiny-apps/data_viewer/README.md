@@ -13,13 +13,13 @@ run_data_viewer()
 
 #### Running as script
 
-Alternatively, the N2O data viewer can be launched via `Rscript` directly (e.g. configured as a desktop link, or from the command line) using the following commands.
+Alternatively, the N2O data viewer can be launched via `Rscript` directly (e.g. configured as a desktop link, or from the command line) using the following commands (pass in the `base_dir` parameter if you want a different data directory than where the script is stored).
 
 ```coffee
-# unix/mac os
+# unix/mac os (assuming Rscript is in your path)
 Rscript -e "library(isorunN2O); run_data_viewer(launch.browser = TRUE)"
 # windows
-C:\Program Files\R\R-3.2.4\bin\Rscript.exe "library(isorunN2O); run_data_viewer(launch.browser = TRUE)"
+"C:\path\to\R\R-3.2.4\bin\Rscript.exe" -e "library(isorunN2O); run_data_viewer(launch.browser = TRUE)"
 ```
 
 Examples for scripts that use this approach and that you can just copy into any directory (e.g. your data directory) and then launch the N2O data viewer from that directory are provided by [run.sh](https://github.com/sebkopf/isorunN2O/blob/master/inst/shiny-apps/data_viewer/run.sh) (for unix/mac, make sure `Rscript` is in your path and the script is executable `chmod +x run.sh`) and [run.bat](https://github.com/sebkopf/isorunN2O/blob/master/inst/shiny-apps/data_viewer/run.bat) (windows, make sure the path is current and points to your R installation).
@@ -62,33 +62,43 @@ As well as the packages hosted on GitHub (run in terminal within CRAN_packages f
 ```coffee
 mkdir GitHub_packages
 cd GitHub_packages
-curl -L -o plotly.zip https://github.com/ropensci/plotly/archive/master.zip
-curl -L -o isotopia.zip https://github.com/sebkopf/isotopia/archive/master.zip
-curl -L -o isoread.zip https://github.com/sebkopf/isoread/archive/master.zip
-curl -L -o isorunN2O.zip https://github.com/sebkopf/isorunN2O/archive/master.zip
-unzip plotly.zip && tar -cvzf plotly.tar.gz ./plotly-* && rm -d -r plotly-*
-unzip isotopia.zip && tar -cvzf isotopia.tar.gz ./isotopia-* && rm -d -r isotopia-*
-unzip isoread.zip && tar -cvzf isoread.tar.gz ./isoread-* && rm -d -r isoread-*
-unzip isorunN2O.zip && tar -cvzf isorunN2O.tar.gz ./isorunN2O-* && rm -d -r isorunN2O-*
+curl -L -o tmp.zip https://github.com/ropensci/plotly/archive/master.zip && unzip tmp.zip && rm tmp.zip
+curl -L -o tmp.zip https://github.com/sebkopf/isotopia/archive/master.zip && unzip tmp.zip && rm tmp.zip
+curl -L -o tmp.zip https://github.com/sebkopf/isoread/archive/master.zip && unzip tmp.zip && rm tmp.zip
+curl -L -o tmp.zip https://github.com/sebkopf/isorunN2O/archive/master.zip && unzip tmp.zip && rm tmp.zip
 ```
 
 Transfer all these files to the offline system, specify the `source_path`, then generate a package dependency tree (platform dependent), and install the GitHub packages from the sources files.
 
+**Dependency tree:**
+
 ```coffee
-# dependency tree
-source_path <- "/path/to/CRAN_packages"
+source_path <- "C:/path/to/CRAN_packages" # windows
+#source_path <- "/path/to/CRAN_packages" # unix
 library(tools)
 write_PACKAGES(source_path, type = "win.binary")
 #write_PACKAGES(source_path, type = "mac.binary")
 ```
 
+**Installation**:
+
 ```coffee
-# installation
+# local repository
+url <- paste0("file:", source_path) # windows
+#url <- paste0("file:\\", source_path) # unix
+
+# install devtools
+install.packages("devtools", contriburl = url)
+
+# install github packages with their dependencies
 sapply(c("plotly", "isotopia", "isoread", "isorunN2O"), function(i) {
-  filepath <- file.path(source_path, "GitHub_packages", paste0(i, ".tar.gz"))
-  stopifnot(file.exists(filepath))
-  install.packages(
-    filepath, repos = NULL, type = "source", dependencies = TRUE,
-    contriburl = paste0("file://", source_path))
+  pkg_path <- file.path(source_path, "GitHub_packages", paste0(i, "-master"))
+  stopifnot(file.exists(pkg_path))
+  deps <- devtools::dev_package_deps(pkg_path, dep = T)$package
+  install.packages(deps, contriburl = url)
+  tryCatch(devtools::install(pkg_path), error = function(e) message("NOTE: ", e$message))
+  return("")
 })
 ```
+
+Note that sometimes Rgui.exe on windows will throw an error along the lines of *"The procedure entry point ... could not be located in the dynamic library ..."* when trying to load the newly installed packages during installation. This can be safely ignored and packages that otherwise installed without trouble should load okay when loading them with `library()`.
