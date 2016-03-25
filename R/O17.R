@@ -60,13 +60,14 @@ correct_N2O_for_17O <- function (data, d45, d46,
     mutate(
       .d18 = 1000 * calc_d18 (.d45/1000, .d46/1000),
       d15.raw = 1000 * calc_d15 (.d18/1000, .d45/1000),
-      d18.raw = .d18
+      d18.raw = .d18,
+      p.17Ocor = paste0("scaling=", lambda, "; ref 17R=", ref_17R, ", 18R=", ref_18R, ", 15N=", ref_15R_avg)
     )
 
   # output
   if (!quiet) {
     sprintf(paste(
-      "INFO: %s N2O analyses were corrected for 17O (new columns 'd15.raw' and 'd18.raw' added).",
+      "INFO: %s N2O analyses were corrected for 17O (new columns 'd15.raw' and 'd18.raw', and parameter 'p.17Ocor' added).",
       "\n      Correction effects: mean d45 = %.3f with resulting d15 = %.3f, mean d46 = %.3f with resulting d18 = %.3f [permil]",
       "\n      Correction term constants: k46 = %.4f, k45 = %.4f, k17 = %.4f, k45x45 = %.4f, k45x17 = %.4f, k17x17 = %.4f"),
       nrow(df), mean(df$.d45), mean(df$d15.raw), mean(df$.d46), mean(df$d18.raw), k46, k45, k17, k45x45, k45x17, k17x17) %>% message()
