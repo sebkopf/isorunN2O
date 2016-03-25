@@ -15,6 +15,17 @@ run_data_viewer <- function(base_dir = ".", ...) {
   if (app_dir == "")
     stop("Could not find data viewer directory. Try re-installing `isorunN2O`.", call. = FALSE)
 
+  isorunN2O:::run_data_viewer_dev(base_dir = base_dir, app_dir = app_dir, ...)
+}
+
+
+#' for development of data viewer
+#' not exported to namespace but helpful for active development of the shiny app
+run_data_viewer_dev <- function(base_dir = ".", app_dir = file.path("inst", "shiny-apps", "data_viewer"), ...) {
+
+  if (!file.exists(app_dir))
+    stop("App directory does not exist, something might be wrong with the `isorunN2O` installation: ", app_dir)
+
   if (!file.exists(base_dir))
     stop("Could not find base directory '", base_dir, " from the current working directory: ", getwd())
 
@@ -28,3 +39,4 @@ run_data_viewer <- function(base_dir = ".", ...) {
   # start app
   shiny::runApp(app_dir, display.mode = "normal", ...)
 }
+
