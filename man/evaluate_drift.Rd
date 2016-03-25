@@ -6,7 +6,7 @@
 \usage{
 evaluate_drift(data, d45, d46, group = name, correct = FALSE,
   correct_with = category \%in\% c("USGS-34", "IAEA-NO3", "N2O"),
-  plot = TRUE, quiet = FALSE, method = "lm", ...)
+  plot = TRUE, quiet = FALSE, method = "lm", span = 0.75, ...)
 }
 \arguments{
 \item{data}{the data frame, must be from a single run because this should really be evaluated
@@ -27,6 +27,8 @@ this is also used for color coding the data points in the generated plot (if \co
 
 \item{method}{which method to use for drift correction, common approaches
 are linear models (lm) and local polynomial regression fitting (loess)}
+
+\item{span}{degree of smoothing for the loess (if this method is used)}
 
 \item{...}{additional parameters for the fitting method}
 }

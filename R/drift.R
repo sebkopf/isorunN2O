@@ -13,12 +13,13 @@
 #' @param method which method to use for drift correction, common approaches
 #'    are linear models (lm) and local polynomial regression fitting (loess)
 #' @param plot whether to output the drift plots [default is FALSE]
+#' @param span degree of smoothing for the loess (if this method is used)
 #' @param ... additional parameters for the fitting method
 #' @export
 #' @return introduces the new columns d45.cor and d46.cor + parameter column p.drift
 evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
                            correct_with = category %in% c("USGS-34", "IAEA-NO3", "N2O"),
-                           plot = TRUE, quiet = FALSE, method = "lm", ...) {
+                           plot = TRUE, quiet = FALSE, method = "lm", span = 0.75, ...) {
 
   if (is.null(data$run_number)) stop("need to know the run_number, please parse_file_names first")
   if (missing(d45)) stop("please specify the column that holds the d45 data")
@@ -43,7 +44,10 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
   # regressions
   corr_cats <- mdf$category %>% unique() %>% paste(collapse = ", ") # for drift into
   args <- list(...)
-  if (method == "loess") args <- c(args, list(control = loess.control(surface = "direct"))) # to allow extrapolation
+  reg_notes <- method
+  if (method == "loess") reg_notes <- paste0(reg_notes, " (span: ", span, ")")
+  if (method == "loess") args <- c(args, list(span = span, control = loess.control(surface = "direct")))
+  # "direct" is to allow extrapolation
   m45 <- do.call(method, c(list(quote(d45 ~ x), data = quote(mdf)), args))
   m46 <- do.call(method, c(list(quote(d46 ~ x), data = quote(mdf)), args))
 
@@ -51,8 +55,8 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
   if (plot) {
     (mdf %>% gather(panel, y, d45, d46) %>%
       ggplot() + aes(x, y) +
-      geom_smooth(method = method, se = T, size = 1.5, color = "black", ...) +
-      geom_smooth(aes(color = .group, fill = .group), method = method, se = F, ...) +
+      stat_smooth(method = method, span = span, method.args=args, se = T, size = 1.5, color = "black") +
+      stat_smooth(aes(color = .group, fill = .group), method = method, span = span, method.args=args, se = F) +
       geom_point(aes(color = .group), size = 3) +
       facet_wrap(~panel, ncol = 1, scales = "free_y") +
       theme_bw() + theme(legend.position = "left") +
@@ -63,7 +67,7 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
            data.frame(residuals = m46$residuals, fitted = m46$fitted, panel = "d46")) %>%
       ggplot() +
       aes(fitted, residuals) + geom_point() +
-      geom_smooth(method = "loess", color = "red", se = F) +
+      stat_smooth(method = "loess", color = "red", se = F) +
       facet_wrap(~panel, ncol = 1, scales = "free") + theme_bw()
     ) -> p2
 
@@ -79,7 +83,7 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
       left_join(ggplot2:::predictdf(m45, run_numbers, se = F) %>% rename(.d45.adjust = y, run_number = x), by = "run_number")  %>%
       left_join(ggplot2:::predictdf(m46, run_numbers, se = F) %>% rename(.d46.adjust = y, run_number = x), by = "run_number")  %>%
       mutate(d45.cor = .d45 - .d45.adjust, d46.cor = .d46 - .d46.adjust,
-             p.drift = paste0(method, ": ", corr_cats)) %>%
+             p.drift = paste0(reg_notes, ": ", corr_cats)) %>%
       select(-.d45.adjust, -.d46.adjust)
 
     if (!quiet & correct) {
