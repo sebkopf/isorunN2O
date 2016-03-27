@@ -53,10 +53,11 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
 
   # fitting overview plot
   if (plot) {
+    method_args <- list(...)
     (mdf %>% gather(panel, y, d45, d46) %>%
       ggplot() + aes(x, y) +
-      stat_smooth(method = method, span = span, method.args=args, se = T, size = 1.5, color = "black") +
-      stat_smooth(aes(color = .group, fill = .group), method = method, span = span, method.args=args, se = F) +
+      stat_smooth(aes(color = .group, fill = .group), method = method, se = F) +
+      stat_smooth(method = method, span = span, method.args=method_args, se = T, size = 1.5, color = "black") +
       geom_point(aes(color = .group), size = 3) +
       facet_wrap(~panel, ncol = 1, scales = "free_y") +
       theme_bw() + theme(legend.position = "left") +
