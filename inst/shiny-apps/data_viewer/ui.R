@@ -1,4 +1,5 @@
 library(shiny)
+library(isorunN2O)
 source("folder_browser.R")
 
 variables <-
@@ -65,7 +66,11 @@ ui <- shinyUI(
                 column(width = 4, align="right", actionButton("data_refresh", "Fetch new", icon("refresh")))),
               htmlOutput("rt_selector_widget"),
               radioButtons("data_type_selector", "Data to show:", inline = FALSE, variables),
-              radioButtons("data_drift_correction", "Drift correction:", inline = TRUE, c("none", "linear", "polynomial")),
+              radioButtons("data_drift_correction", "Drift correction:", inline = TRUE, c("none", "linear", "loess")),
+              conditionalPanel(
+                condition = "input.data_drift_correction == 'loess'",
+                numericInput("data_drift_loess", "Local polynomial regression range (alpha):", 0.75, min = 0.1, step = 0.1)
+                ),
               htmlOutput("group_selector_widgets")
             ),
             mainPanel(

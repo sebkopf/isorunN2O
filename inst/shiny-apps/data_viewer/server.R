@@ -1,7 +1,7 @@
 library(shiny)
+library(isorunN2O)
 library(ggplot2)
-library(dplyr)
-library(isoread)
+library(plotly)
 
 # make sure base directory is set
 if (!exists(".base_dir", env = .GlobalEnv))
@@ -21,7 +21,8 @@ server <- shinyServer(function(input, output, session) {
   settings_file <- file.path(data_dir, "settings.csv")
   message("\n***************************************************************",
           "\nINFO: Launching N2O Data Viewer ...",
-          "\nINFO: Base directory: ", data_dir)
+          "\nINFO: App directory: ", getwd(),
+          "\nINFO: Data directory: ", data_dir)
 
   # SETTINGS =======
   if (!file.exists(settings_file)) {
@@ -291,6 +292,7 @@ server <- shinyServer(function(input, output, session) {
 
       # find available categories
       categories <- get_data_table() %>%
+        dplyr::select(file, category) %>% unique() %>%
         dplyr::count(category) %>%
         dplyr::arrange(desc(n)) %>%
         dplyr::mutate(label = paste0(category, "... (", n, "x)"))
@@ -372,8 +374,9 @@ server <- shinyServer(function(input, output, session) {
                          run_number, name, category, group,
                          volume, intensity, area, d45, d46, color) %>%
           evaluate_drift(d45, d46, correct = input$data_drift_correction != "none", plot = FALSE,
+                         span = as.numeric(input$data_drift_loess),
                          correct_with = group %in% c("Lab ref", "Standard 1", "Standard 2"),
-                         method = if (input$data_drift_correction == "polynomial") "loess" else "lm") %>%
+                         method = if (input$data_drift_correction == "loess") "loess" else "lm") %>%
           correct_N2O_for_17O(d45.cor, d46.cor)
 
         return(dt)
@@ -399,7 +402,9 @@ server <- shinyServer(function(input, output, session) {
         p <- dt %>%
           plot_overview(
             y, size = size,
-            text = make_itext(name, d15 = round(d15.raw, 2), d18 = round(d18.raw, 2), area = round(area,1)),
+            text = make_itext(paste0(name, " (#", x, ")"),
+                              d15 = round(d15.raw, 2), d18 = round(d18.raw, 2),
+                              area = round(area,1)),
             color = color, panel = group) +
           labs(y = input$data_type_selector, size = "Area All [Vs]")
         setProgress(0.8, "Rendering plot")
@@ -440,9 +445,9 @@ server <- shinyServer(function(input, output, session) {
     } else {
       get_overview_data() %>%
         mutate(bla = as.character(group)) %>%
-        evaluate_drift(d45, d46, correct = FALSE, plot = TRUE,
+        evaluate_drift(d45, d46, correct = TRUE, plot = TRUE, span = as.numeric(input$data_drift_loess),
                        correct_with = bla %in% c("Lab ref", "Standard 1", "Standard 2"),
-                       method = if (input$data_drift_correction == "polynomial") "loess" else "lm")
+                       method = if (input$data_drift_correction == "loess") "loess" else "lm")
     }
   })
 
