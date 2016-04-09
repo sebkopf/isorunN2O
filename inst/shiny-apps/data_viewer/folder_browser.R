@@ -38,7 +38,10 @@ folderSelectorInput <- function(id,
   ns <- NS(id)
   dialog_tags <-
   tagList(
-    uiOutput(ns("path")),
+    fluidRow(
+      column(width = 10, uiOutput(ns("path"))),
+      column(width = 2, actionButton(ns("refresh"), "Refresh"))
+    ),
     br(),
     fluidRow(
       column(width = 6, strong(folders_label)),
@@ -79,6 +82,8 @@ folderSelector <- function(input, output, session, root,
 
   # base folder
   base_dir <- reactive({
+
+    input$refresh
 
     # base path
     path <- input$path
