@@ -32,8 +32,8 @@ get_isodat_data_tables <- function(isodat_files, volume = "Identifier 2", quiet 
 select_N2O_peak <- function(data_table, peak_rt, quiet = FALSE) {
   df <- data_table %>% filter(Start <= peak_rt, End >= peak_rt)
   if (!quiet)
-    sprintf("INFO: %s N2O peaks found (at retention time %ss), %s other peaks discarded.",
-            nrow(df), peak_rt, nrow(data_table) - nrow(df)) %>% message()
+    sprintf("INFO: %s N2O peaks found in %s files (at retention time %ss), %s other peaks discarded.",
+            nrow(df), length(data_table$file %>% unique()), peak_rt, nrow(data_table) - nrow(df)) %>% message()
   return(df)
 }
 
@@ -107,7 +107,7 @@ parse_file_names <- function(data, quiet = FALSE) {
     sprintf(paste(
       "INFO: Parsed %s file names into new columns for analysis 'name', 'category' and 'run_number'.",
       "\n      Found categories %s"),
-      nrow(data), cat_sum) %>% message()
+      length(data$file %>% unique()), cat_sum) %>% message()
   }
   return(df)
 }
