@@ -26,14 +26,40 @@ get_isodat_data_tables <- function(isodat_files, volume = "Identifier 2", quiet 
 
 #' Identify the N2O peak
 #' @param data_table aggregated isodat data table(s)
-#' @param peak_rt peak retention time [in s]
+#' @param peak_rt peak retention time [in s] - either a single value, which will find peaks that start before and end after this retention time; or a vector with two values: c(from, to) which will find peaks that overlap with this interval
 #' @param quiet whether the function should output information messages or be quiet (default is to output)
 #' @export
 select_N2O_peak <- function(data_table, peak_rt, quiet = FALSE) {
-  df <- data_table %>% filter(Start <= peak_rt, End >= peak_rt)
-  if (!quiet)
+  if (is.numeric(peak_rt) && length(peak_rt) == 1) {
+    df <- data_table %>%
+      filter(Start <= peak_rt, End >= peak_rt) # peak starts before and ends after peak_rt
+    rt_msg <- peak_rt
+  } else if (is.numeric(peak_rt) && length(peak_rt) == 2 && peak_rt[2] > peak_rt[1]) {
+    df <- data_table %>% filter(
+      (Start <= peak_rt[1] & End >= peak_rt[1]) | # peak overlaps with start of interval
+        (Start <= peak_rt[2] & End >= peak_rt[2]) | # peak overlaps with end of interval
+        (Start <= peak_rt[1] & End >= peak_rt[2]) # peak spans interval
+    )
+    rt_msg <- paste(peak_rt[1], "-", peak_rt[2])
+  } else {
+    stop("Peak retention time 'peak_rt' must be a single number or vector with two values c(from, to).", call. = FALSE)
+  }
+
+  if (!quiet) {
     sprintf("INFO: %s N2O peaks found in %s files (at retention time %ss), %s other peaks discarded.",
-            nrow(df), length(data_table$file %>% unique()), peak_rt, nrow(data_table) - nrow(df)) %>% message()
+            nrow(df), length(data_table$file %>% unique()), rt_msg, nrow(data_table) - nrow(df)) %>% message()
+    no_N2O_files <- setdiff(unique(data_table$file), unique(df$file))
+    if ( length(no_N2O_files) > 0) {
+      sprintf(
+        paste("      NOTE that no N2O peak was found in the following files",
+              "(check retention time if there should be one):",
+              "\n      %s"),
+              no_N2O_files %>% paste(collapse = ", ")) %>% message()
+    }
+  }
+
+
+
   return(df)
 }
 

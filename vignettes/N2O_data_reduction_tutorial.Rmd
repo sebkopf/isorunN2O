@@ -56,7 +56,7 @@ df.raw <- iso_files %>%
   # derive file categories:
   parse_file_names() %>% 
   # discard the reference peaks:
-  select_N2O_peak(360) %>% 
+  select_N2O_peak( c(360, 370)) %>% 
   # focus on the columns we care about:
   rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`) %>% 
   # select which columns to keep:
