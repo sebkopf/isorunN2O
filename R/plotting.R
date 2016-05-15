@@ -10,6 +10,7 @@
 #'
 #' @param ... the y value columns
 #' @param size the data point size aesthetic
+#' @param shape the data point shape aesthetic
 #' @param text the tooltip text for data points (see \code{\link{make_itext}} for constructing more complex hover text)
 #' @param color what to use for coloring
 #' @param panel what to use for panelling (ignored if multiple y columns are supplied)
@@ -17,7 +18,7 @@
 #' @seealso \code{\link{make_interactive}}
 #' @seealso \code{\link{make_itext}}
 #' @export
-plot_overview <- function(data, ..., size = NULL, text = NULL, color = category, panel = category) {
+plot_overview <- function(data, ..., size = NULL, shape = NULL, text = NULL, color = category, panel = category) {
 
   # allow multiple y values (will be gathered if there is more than 1)
   ys <- lazyeval::lazy_dots(...)
@@ -37,6 +38,10 @@ plot_overview <- function(data, ..., size = NULL, text = NULL, color = category,
 
   if (!missing(size)) {
     fields$size <- interp(~var, var = substitute(size))
+  }
+
+  if (!missing(shape)) {
+    fields$shape <- interp(~var, var = substitute(shape))
   }
 
   if (!missing(text)) {
@@ -69,15 +74,30 @@ plot_overview <- function(data, ..., size = NULL, text = NULL, color = category,
     p <- p + aes(text = label)
   }
 
+  # shape
+  if (!missing(shape)) {
+    p <- p + aes(shape = shape) +
+      scale_shape_manual(values = 21:25) +
+      labs(shape = "")
+  }
+
   # size
   if (!missing(size)) {
     p <- p + aes(size = size) +
       scale_size_continuous(range = c(1,5)) +
-      geom_point(shape = 21, colour = "black") +
       labs(size = deparse(substitute(size)))
-  } else {
-    p <- p + geom_point(shape = 21, colour = "black", size = 4)
   }
+
+  # shape & size
+  if (!missing(shape) && !missing(size))
+    p <- p + geom_point(colour = "black")
+  else if (!missing(shape) && missing(size))
+    p <- p + geom_point(colour = "black", size = 4)
+  else if (missing(shape) && !missing(size))
+    p <- p + geom_point(colour = "black", shape = 21)
+  else
+    p <- p + geom_point(colour = "black", shape = 21, size = 4)
+
 
   # main plot
   p <- p +

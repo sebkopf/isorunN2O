@@ -91,10 +91,10 @@ df.raw %>% plot_overview(
   panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")))
 ```
 
-or as an interactive plot (mouse-over information and zooming), which is a little easier for data exploration:
+or as an interactive plot (mouse-over information and zooming), which is a little easier for data exploration (`make_interactive()` makes the last plot interactive by default):
 
 ```{r, cache = FALSE, fig.width = 9, fig.height = 7}
-ggplot2::last_plot() %>% make_interactive()
+make_interactive() 
 ```
 
 
@@ -179,13 +179,21 @@ df.cal %>% plot_overview(
   make_interactive()
 ```
 
-And some simpler single data plots (using `filter` from the `ddply` package):
+And some simpler single data plots (using `filter` from the `ddply` package) to look specifically at the samples and DPR control.
 
 ```{r single_data_plots, fig.width = 9, fig.height = 7}
-df.cal %>% filter(category == "IAEA-NO3") %>% 
-  plot_overview(d15.cal, d18.cal, color = panel)
 df.cal %>% filter(category %in% c("P02E", "DPR")) %>% 
-  plot_overview(d15.cal, d18.cal, color = paste(category, panel)) %>% make_interactive() 
+  plot_overview(d15.cal, d18.cal, color = paste(category, panel)) %>% 
+  make_interactive() 
+```
+
+Additional customization is also possible using `ggplot` functionality, for example can use the `shape` parameter for symbol differentiation, and to visualize all the standards' key values in separate panels, can make use of `facet_wrap`:
+
+```{r standards, fig.width = 10, fig.height = 7}
+(df.cal %>% filter(category %in% c("IAEA-NO3", "USGS-34")) %>% 
+  plot_overview(d15.cal, d18.cal, amount, color = name, shape = name) + 
+  facet_wrap(category ~ panel, scales = "free")) %>% 
+  make_interactive()
 ```
 
 

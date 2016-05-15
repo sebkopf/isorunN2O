@@ -4,13 +4,15 @@
 \alias{plot_overview}
 \title{make sure the last plot uses ggplot instead of plotly implementation}
 \usage{
-plot_overview(data, ..., size = NULL, text = NULL, color = category,
-  panel = category)
+plot_overview(data, ..., size = NULL, shape = NULL, text = NULL,
+  color = category, panel = category)
 }
 \arguments{
 \item{...}{the y value columns}
 
 \item{size}{the data point size aesthetic}
+
+\item{shape}{the data point shape aesthetic}
 
 \item{text}{the tooltip text for data points (see \code{\link{make_itext}} for constructing more complex hover text)}
 

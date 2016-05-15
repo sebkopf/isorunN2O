@@ -9,7 +9,7 @@ select_N2O_peak(data_table, peak_rt, quiet = FALSE)
 \arguments{
 \item{data_table}{aggregated isodat data table(s)}
 
-\item{peak_rt}{peak retention time [in s]}
+\item{peak_rt}{peak retention time [in s] - either a single value, which will find peaks that start before and end after this retention time; or a vector with two values: c(from, to) which will find peaks that overlap with this interval}
 
 \item{quiet}{whether the function should output information messages or be quiet (default is to output)}
 }
