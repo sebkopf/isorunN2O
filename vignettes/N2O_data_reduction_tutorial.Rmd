@@ -191,8 +191,12 @@ Additional customization is also possible using `ggplot` functionality, for exam
 
 ```{r standards, fig.width = 10, fig.height = 7}
 (df.cal %>% filter(category %in% c("IAEA-NO3", "USGS-34")) %>% 
-  plot_overview(d15.cal, d18.cal, amount, color = name, shape = name) + 
-  facet_wrap(category ~ panel, scales = "free")) %>% 
+  plot_overview(
+    d15.cal, d18.cal, amount, color = name, shape = name, 
+    text = make_itext(name, `#` = run_number, 
+                      d15 = round(d15.cal, 2), 
+                      d18 = round(d18.cal, 2))) + 
+  facet_wrap(panel ~ category, scales = "free", ncol = 2)) %>% 
   make_interactive()
 ```
 

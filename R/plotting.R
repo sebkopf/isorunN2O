@@ -52,11 +52,15 @@ plot_overview <- function(data, ..., size = NULL, shape = NULL, text = NULL, col
   if (length(ys) > 1) {
     dots <- lapply(ys, function(y)
       list(interp(~var, var = y$expr)) %>%
-        setNames(deparse(y$expr))) %>% unlist()
+        # add . to ensure original columns are still available for mouseover text
+        setNames(paste0(".", deparse(y$expr)))) %>% unlist()
     data <- data %>%
       mutate_(.dots = dots) %>% # create y fields
       gather_(".panel", ".value", names(dots)) %>%  # gather y fields
-      mutate(panel = .panel, value = .value) # to be on the safe side during gather
+      # revert .s (to be on the safe side during gather)
+      rename(panel = .panel, value = .value) %>%
+      # remove . from the panel values again
+      mutate(panel = sub("^\\.", "", panel))
 
     # update aesthetics
     ylab <- ""
