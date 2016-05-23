@@ -32,6 +32,7 @@ generate_data_table <- function(data, ..., cutoff = 1) {
 #' @param the data frame, can already have a group_by if so desired
 #' @export
 generate_parameter_table <- function(data) {
-  df <- data %>% select(starts_with("p.")) #  %>% mutate(n = length(unique())) %>% summarize_each(funs(p_sum(.)))
-  na.omit(df[!duplicated(df),])
+  data %>%
+    select(starts_with("p.")) %>%
+    unique()
 }
