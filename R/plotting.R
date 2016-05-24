@@ -106,7 +106,7 @@ plot_overview <- function(data, ..., size = NULL, shape = NULL, text = NULL, col
   # main plot
   p <- p +
     aes(x = x, y = y, fill = color) +
-    labs(x = "Run #", y = ylab, fill = "") + theme_bw() +
+    labs(x = "Run #", y = ylab, fill = "", size = "") + theme_bw() +
     theme(text = element_text(size = 18), axis.text.x = element_text(angle = 60, hjust = 1),
           legend.position = "right", legend.direction = "vertical") +
     facet_grid(panel~., scales = "free_y")
