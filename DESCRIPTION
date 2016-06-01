@@ -44,4 +44,5 @@ Collate:
     'processing.R'
     'package.R'
     'reporting.R'
+    'utils.R'
 RoxygenNote: 5.0.1
