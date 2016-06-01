@@ -5,7 +5,7 @@
 \title{Calibrate d15 values with the given standards}
 \usage{
 calibrate_d15(data, d15, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7),
-  quiet = FALSE)
+  ref_gas_d15 = 0, quiet = FALSE)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}
@@ -14,9 +14,11 @@ calibrate_d15(data, d15, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7),
 
 \item{standards}{a set of isotope standards
 Note: they are matched to the data by "category" (not by name)}
+
+\item{ref_gas_d15}{the reference gas isotopic composition (only used to constrain blank d15)}
 }
 \value{
-introduces the column d15.cal and parameters p.d15_m and p.d15_b + p.15_stds
+introduces the column d15.cal and parameters p.15_stds, p.d15_m and p.d15_b as well as p.N_blk_amt and p.N_blk_d15
 }
 \description{
 Calibrate d15 values with the given standards

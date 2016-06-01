@@ -2,7 +2,7 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_background}
 \alias{calculate_background}
-\title{Calculates the background area}
+\title{Calculate background area}
 \usage{
 calculate_background(data, area, criteria = name \%in\% c("background",
   "Background"), update_category = "background", quiet = FALSE)
@@ -21,7 +21,8 @@ calculate_background(data, area, criteria = name \%in\% c("background",
 introduces the parameter columns p.bgrd
 }
 \description{
-Calculates the background area
+Calculates the background area from the direct measurement of the
+background peak. This blank is also estimated by calibrate_d15().
 }
 \seealso{
 \code{\link{change_category}}

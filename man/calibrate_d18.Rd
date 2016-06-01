@@ -22,7 +22,7 @@ calibrate_d18(data, d18, amount = amount, volume = volume, cell_volume,
 Note: they are matched to the data by "category" (not by name)}
 }
 \value{
-introduces the column d18.cal and parameters p.d18_m and p.d18_b
+introduces the column d18.cal and parameters p.d18_m_true, p.d18_m_conc, p.d18_m_true:conc and p.d18_b
 }
 \description{
 Uses a multivariate linear regression that takes the effective concentration
