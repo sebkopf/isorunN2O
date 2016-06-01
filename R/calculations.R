@@ -41,6 +41,7 @@ calculate_background <- function(data, area,
 #' @param data the data set
 #' @param amount the run size, should be in the same units as standard concentration * volume injection, i.e. if concentrations are in microM and volumes in mL, the run size should be in nmol
 #' @return adds/overwrites the column 'p.run_size'
+#' @export
 set_run_size <- function(data, amount, quiet = FALSE) {
   if (!quiet) {
     if(!is.null(data$p.run_size)) {
@@ -155,8 +156,11 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
   data %>% mutate_(.dots = fields) %>% # creating .d15 once here is easier to handle
     do({
 
+      # sub frame
+      sdf <- .
+
       # regression model
-      m <- filter(., category %in% names(standards)) %>%
+      m <- filter(sdf, category %in% names(standards)) %>%
         left_join(stds.df, by = "category") %>%
         with(lm(.d15 ~ .d15.true))
       coefs <- as.data.frame(coef(summary(m)))
@@ -171,7 +175,7 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
 
       # add parameters and calculate delta
       p.run_size.err <- 0 # FIXME, might want to allow defining this?
-      out <- mutate(.,
+      out <- mutate(sdf,
         p.d15_stds = stds.label,
         p.d15_m = beta1,
         p.d15_b = beta0,
@@ -180,16 +184,25 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
         p.N_blk_amt = p.run_size * (1 - beta1) / beta1,
         p.N_blk_amt.err = sqrt( ( (1/beta1 + 1) * p.run_size.err )^2 + (p.run_size/beta1^2 * beta1.err)^2 ),
         p.N_blk_d15 = (beta0 + ref_gas_d15) * 1 / (1 - beta1),
-        p.N_blk_d15.err = 1/(1-beta1) * sqrt( (beta0.err)^2 + ( (beta0 + ref_gas_d15)/beta1 * beta1.err)^2 + (ref_gas_d15.err)^2 ))
+        p.N_blk_d15.err = abs(1/(1-beta1)) * sqrt( (beta0.err)^2 + ( (beta0 + ref_gas_d15)/beta1 * beta1.err)^2 + (ref_gas_d15.err)^2 ))
 
       if (!quiet) {
+
+        # group info
+        grps_text <- ""
+        if (!is.null(groups(data))) {
+          grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
+          grps_text <- paste0(names(grps), " = ", grps) %>% paste(collapse = ", ")
+          grps_text <- paste0("\n      Group: ", grps_text)
+        }
+
         sprintf(
           paste(
             "INFO: d15 values calibrated (new columm 'd15.cal') using %s --> stored in 'p.d15_stds'",
-            "\n      Parameter columns for calibration slope (measured vs. true) 'p.d15_m' (%.3f) and intercept 'p.d15_b' (%.3f) added.",
+            "%s\n      Parameter columns for calibration slope (measured vs. true) 'p.d15_m' (%.3f) and intercept 'p.d15_b' (%.3f) added.",
             "\n      Inferred blank information (for 'p.ref_gas_d15' = %s permil) added as ",
             "'p.N_blk_amt' (%s usually nmol) and 'p.N_blk_d15' (%s permil)"),
-          stds.label, beta1, beta0, round_to_err(ref_gas_d15, ref_gas_d15.err),
+          stds.label, grps_text, beta1, beta0, round_to_err(ref_gas_d15, ref_gas_d15.err),
           round_to_err(out$p.N_blk_amt, out$p.N_blk_amt.err) %>% unique() %>% paste(collapse = ", "),
           round_to_err(out$p.N_blk_d15, out$p.N_blk_d15.err) %>% unique() %>% paste(collapse = ", ")) %>%
           message()
@@ -205,29 +218,21 @@ calibrate_d15 <- function(data, d15, standards = c("USGS-34" = -1.8, "IAEA-NO3" 
 #' @param standards a set of isotope standards
 #'  Note: they are matched to the data by "category" (not by name)
 #' @param d15 the d15 column (can be a column already calibrated for denitrifier method)
-#' @param type what kind of correction to perform, "2nd-step" implies that a separate nitrate correction has already been applied (using calibrate_d15) whereas "1-step" forces one single step correction that also corrects for nitrate blank
-#' @param ref_gas_d15 the reference gas isotopic composition (only used if type = "1-step" to constrain culture blank d15)
+#' @param infer_NO3_blank whether to infer the NO3 blank from this correction in addition to the organic blank (if using a single step correction)
+#' @param ref_gas_d15 the reference gas isotopic composition (only used if infer_NO3_blank = TRUE, to constrain culture blank d15)
 #' @return introduces the column d15.ocal and parameters p.15o_stds,
-#'    p.d15o_m_true (=1 by definition if type is 2nd-step), p.d15o_m_vol, p.d15o_m_true:vol and p.d15o_b (=0 by definition if type is 2nd-step)
+#'    p.d15o_m_true, p.d15o_m_vol, p.d15o_m_true:vol and p.d15o_b
 #'    as well as information on the organic blank p.No_blk_conc and p.No_blk_d15 and nitrate blank (only if type is 1-step!) p.N_blk_amt and p.N_blk_d15
 #' @note implement single point correction
 #' @export
-calibrate_d15_org <- function(data, d15, type = c("2nd-step", "1-step"), volume = volume,
-                              standards = c("USGS-40" = -4.50, "USGS-41" = 47.60), ref_gas_d15 = 0, quiet = FALSE) {
-
-  # constants
-  M_PART <- "2nd-step"
-  M_FULL <- "1-step"
+calibrate_d15_org <- function(data, d15, volume = volume, standards = c("USGS-40" = -4.50, "USGS-41" = 47.60),
+                              infer_NO3_blank = FALSE, ref_gas_d15 = 0, quiet = FALSE) {
 
   # safety checks
   if (missing(d15)) stop("please specify the column that holds the d15 values to calibrate")
-  if (missing(type) || !type %in% c(M_PART, M_FULL))
-    stop("need to define correction type, valid values are \"", M_PART, "\" and \"", M_FULL, "\"")
   if (is.null(data$category)) stop("need to have categories, please parse_file_names first")
   if (is.null(data$p.run_size)) stop("need to know run size (p.run_size) to infer blank parameters, ",
                                      "please create this column via set_run_size() or calculate_concentrations() first")
-  if (type == "2nd-step" && is.null(data$p.d15_stds))
-    stop("in order to run this as a 2nd-step calibration, please run the 1st-step via calibrate_d15() first")
 
   if ( length(missing <- setdiff(names(standards), data$category)) > 0 )
     stop("some of the standards' names do not match the categories in this dataset, check spelling: ",
@@ -249,98 +254,88 @@ calibrate_d15_org <- function(data, d15, type = c("2nd-step", "1-step"), volume 
   data %>% mutate_(.dots = fields) %>% # creating .d15 once here is easier to handle
     do({
 
-      if (type == M_FULL || TRUE) {
-        # full regression model
-        # d15 = beta0 + beta1 * d15.true + beta2 * d15.true * V + beta3 * V
-        m <- filter(., category %in% names(standards)) %>%
-          left_join(stds.df, by = "category") %>%
-          with(lm(.d15 ~ .d15.true + .V + .d15.true:.V))
-        coefs <- as.data.frame(coef(summary(m)))
-        coefs <- coefs %>% mutate(coef = rownames(coefs))
+      # sub frame
+      sdf <- .
 
-        # coefficients
-        beta0 <- (coefs %>% filter(coef == "(Intercept)"))$Estimate
-        beta0.err <- (coefs %>% filter(coef == "(Intercept)"))$`Std. Error`
-        beta1 <- (coefs %>% filter(coef == ".d15.true"))$Estimate
-        beta1.err <- (coefs %>% filter(coef == ".d15.true"))$`Std. Error`
-        beta2 <- (coefs %>% filter(coef == ".d15.true:.V"))$Estimate
-        beta2.err <- (coefs %>% filter(coef == ".d15.true:.V"))$`Std. Error`
-        beta3 <- (coefs %>% filter(coef == ".V"))$Estimate
-        beta3.err <- (coefs %>% filter(coef == ".V"))$`Std. Error`
+      # regression model: d15 = beta0 + beta1 * d15.true + beta2 * d15.true * V + beta3 * V
+      m <- filter(sdf, category %in% names(standards)) %>%
+        left_join(stds.df, by = "category") %>%
+        with(lm(.d15 ~ .d15.true + .V + .d15.true:.V))
+      coefs <- as.data.frame(coef(summary(m)))
+      coefs <- coefs %>% mutate(coef = rownames(coefs))
 
-      } else {
-        # 2nd-step regression model
-        # d15 = d15.true + beta2 * d15.true * V + beta3 * V
-        # --> d15 - d15.true = beta2 * d15.true * V + beta3 * V
-        m <- filter(., category %in% names(standards)) %>%
-          left_join(stds.df, by = "category") %>%
-          mutate(.d15_diff = .d15 - .d15.true) %>%
-          with(lm(.d15_diff ~ 0 + .V + .d15.true:.V))
-        coefs <- as.data.frame(coef(summary(m)))
-        coefs <- coefs %>% mutate(coef = rownames(coefs))
-
-        # coefficients
-        beta0 <- 0
-        beta0.err <- 0
-        beta1 <- 1
-        beta1.err <- 0
-        beta2 <- (coefs %>% filter(coef == ".V:.d15.true"))$Estimate
-        beta2.err <- (coefs %>% filter(coef == ".V:.d15.true"))$`Std. Error`
-        beta3 <- (coefs %>% filter(coef == ".V"))$Estimate
-        beta3.err <- (coefs %>% filter(coef == ".V"))$`Std. Error`
-      }
+      # coefficients
+      beta0 <- (coefs %>% filter(coef == "(Intercept)"))$Estimate
+      beta0.err <- (coefs %>% filter(coef == "(Intercept)"))$`Std. Error`
+      beta1 <- (coefs %>% filter(coef == ".d15.true"))$Estimate
+      beta1.err <- (coefs %>% filter(coef == ".d15.true"))$`Std. Error`
+      beta2 <- (coefs %>% filter(coef == ".d15.true:.V"))$Estimate
+      beta2.err <- (coefs %>% filter(coef == ".d15.true:.V"))$`Std. Error`
+      beta3 <- (coefs %>% filter(coef == ".V"))$Estimate
+      beta3.err <- (coefs %>% filter(coef == ".V"))$`Std. Error`
 
       # calculate delta and add parameters
       p.run_size.err <- 0 # FIXME, might want to allow defining this?
-      out <- mutate(.,
-                    p.d15o_stds = stds.label,
-                    d15.ocal = (.d15 - beta3 * .V - beta0)/(beta1 + beta2 * .V),
-                    d15.obase = d15.ocal * (beta1 + beta2 * .V) + beta3 * .V + beta0,
-                    # coefficients
-                    p.d15o_m_true = beta1,
-                    p.d15o_m_vol = beta3,
-                    `p.d15o_m_true:vol` = beta2,
-                    p.d15o_b = beta0,
-                    # N organic blank
-                    p.No_blk_conc = -beta2/beta1 * p.run_size,
-                    p.No_blk_conc.err = p.No_blk_conc * sqrt((beta1.err/beta1)^2 + (beta2.err/beta2)^2 + (p.run_size.err/p.run_size)^2),
-                    p.No_blk_d15 = -beta3/beta2,
-                    p.No_blk_d15.err = p.No_blk_d15 * sqrt( (beta2.err/beta2)^2 + (beta3.err/beta3)^2 )
-                    )
+      out <- mutate(
+        sdf,
+        p.d15o_stds = stds.label,
+        d15.ocal = (.d15 - beta3 * .V - beta0)/(beta1 + beta2 * .V),
+        d15.obase = d15.ocal * (beta1 + beta2 * .V) + beta3 * .V + beta0,
+        # coefficients
+        p.d15o_m_true = beta1,
+        p.d15o_m_vol = beta3,
+        `p.d15o_m_true:vol` = beta2,
+        p.d15o_b = beta0,
+        # N organic blank
+        p.No_blk_conc = -beta2/beta1 * p.run_size,
+        p.No_blk_conc.err = abs(p.No_blk_conc) * sqrt((beta1.err/beta1)^2 + (beta2.err/beta2)^2 + (p.run_size.err/p.run_size)^2),
+        p.No_blk_d15 = -beta3/beta2,
+        p.No_blk_d15.err = abs(p.No_blk_d15) * sqrt( (beta2.err/beta2)^2 + (beta3.err/beta3)^2 )
+      )
 
       # for full step also adding the nitrate blank parameters
-      if (type == M_FULL) {
+      if (infer_NO3_blank) {
         out <- out %>%
           mutate(
             p.ref_gas_d15 = ref_gas_d15,
             p.N_blk_amt = p.run_size * (1 - beta1) / beta1,
             p.N_blk_amt.err = sqrt( ( (1/beta1 + 1) * p.run_size.err )^2 + (p.run_size/beta1^2 * beta1.err)^2 ),
             p.N_blk_d15 = (beta0 + ref_gas_d15) * 1 / (1 - beta1),
-            p.N_blk_d15.err = 1/(1-beta1) * sqrt( (beta0.err)^2 + ( (beta0 + ref_gas_d15)/beta1 * beta1.err)^2 + (ref_gas_d15.err)^2 ))
+            p.N_blk_d15.err = abs(1/(1-beta1)) * sqrt( (beta0.err)^2 + ( (beta0 + ref_gas_d15)/beta1 * beta1.err)^2 + (ref_gas_d15.err)^2 ))
       }
 
       # info messages
       if (!quiet) {
+
+        # group info
+        grps_text <- ""
+        if (!is.null(groups(data))) {
+          grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
+          grps_text <- paste0(names(grps), " = ", grps) %>% paste(collapse = ", ")
+          grps_text <- paste0("\n      Group: ", grps_text)
+        }
+
         msg <- sprintf(
           paste(
             "INFO: organic d15 values calibrated (new columm 'd15.ocal') using %s --> stored in 'p.d15o_stds'",
-            "\n      Calibration (type '%s') with regression cofficients (measured vs. true * volume):",
-            "\n      'p.d15o_m_true' (%s), 'p.d15o_m_true:vol' (%s), 'p.d15o_m_vol' (%s) and intercept 'p.d15o_b' (%s) added.",
-            "\n      Inferred organic N blank information added as",
-            "'p.No_blk_conc' (%s usually microM if volume in mL) and 'p.No_blk_d15' (%s permil)"),
-          stds.label, type,
-          round_to_err(beta1, beta1.err), round_to_err(beta2, beta2.err),
-          round_to_err(beta3, beta3.err), round_to_err(beta0, beta0.err),
-          round_to_err(out$p.No_blk_conc, out$p.No_blk_conc.err, 2) %>% unique() %>% paste(collapse = ", "),
-          round_to_err(out$p.No_blk_d15, out$p.No_blk_d15.err, 2) %>% unique() %>% paste(collapse = ", "))
+            "%s\n      Calibration with regression cofficients (measured vs. true * volume):",
+            "\n      'p.d15o_m_true' (%s), 'p.d15o_m_true:vol' (%s), 'p.d15o_m_vol' (%s) and intercept 'p.d15o_b' (%s) added."),
+          stds.label, grps_text, round_to_err(beta1, beta1.err), round_to_err(beta2, beta2.err),
+          round_to_err(beta3, beta3.err), round_to_err(beta0, beta0.err))
 
-        if (type == M_FULL) {
+        if (infer_NO3_blank) {
           msg <- sprintf(
             "%s\n      Inferred nitrate blank information (for 'p.ref_gas_d15' = %s permil) added as 'p.N_blk_amt' (%s usually nmol) and 'p.N_blk_d15' (%s permil)",
             msg, round_to_err(ref_gas_d15, ref_gas_d15.err),
             round_to_err(out$p.N_blk_amt, out$p.N_blk_amt.err) %>% unique() %>% paste(collapse = ", "),
             round_to_err(out$p.N_blk_d15, out$p.N_blk_d15.err) %>% unique() %>% paste(collapse = ", "))
         }
+
+        msg <- sprintf(
+          "%s\n      Inferred organic N blank information added as 'p.No_blk_conc' (%s usually microM if volume in mL) and 'p.No_blk_d15' (%s permil)",
+          msg,
+          round_to_err(out$p.No_blk_conc, out$p.No_blk_conc.err, 2) %>% unique() %>% paste(collapse = ", "),
+          round_to_err(out$p.No_blk_d15, out$p.No_blk_d15.err, 2) %>% unique() %>% paste(collapse = ", "))
 
         message(msg)
       }
