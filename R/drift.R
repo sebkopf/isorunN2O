@@ -35,107 +35,126 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
 
   data <- data %>% mutate_(.dots = fields)
 
-  mdf <- data %>%
-    filter(.included) %>%
-    group_by(.group) %>%
-    mutate(d45 = .d45 - mean(.d45), d46 = .d46 - mean(.d46)) %>%
-    ungroup()
+  # run using do in case there is a grouping
+  df <-
+    data %>% do({
 
-  # regressions
-  corr_cats <- mdf$category %>% unique() %>% paste(collapse = ", ") # for drift into
-  args <- list(...)
-  reg_notes <- method
-  if (method == "loess") reg_notes <- paste0(reg_notes, " (span: ", span, ")")
-  if (method == "loess") args <- c(args, list(span = span, control = loess.control(surface = "direct")))
-  # "direct" is to allow extrapolation
-  m45 <- do.call(method, c(list(quote(d45 ~ x), data = quote(mdf)), args))
-  m46 <- do.call(method, c(list(quote(d46 ~ x), data = quote(mdf)), args))
-
-  # correction
-  run_numbers <- data$run_number %>% unique()
-  data.cor <- data %>%
-    left_join(ggplot2:::predictdf(m45, run_numbers, se = F) %>%
-                rename(.d45.adjust = y, run_number = x), by = "run_number")  %>%
-    left_join(ggplot2:::predictdf(m46, run_numbers, se = F) %>%
-                rename(.d46.adjust = y, run_number = x), by = "run_number")  %>%
-    mutate(d45.cor = .d45 - .d45.adjust, d46.cor = .d46 - .d46.adjust,
-           p.drift = paste0(reg_notes, ": ", corr_cats)) %>%
-    select(-.d45.adjust, -.d46.adjust)
-
-  # fitting overview plot
-  if (plot) {
-
-    # plotting data
+    # included
     mdf <-
-      left_join(mdf, select(data.cor, run_number, d45.cor, d46.cor),
-                by = "run_number") %>%
+      filter(., .included) %>%
       group_by(.group) %>%
-      mutate(
-        `d45 corrected` = d45.cor - mean(d45.cor),
-        `d46 corrected` = d46.cor - mean(d46.cor)
+      mutate(d45 = .d45 - mean(.d45), d46 = .d46 - mean(.d46)) %>%
+      ungroup()
+
+    # group info
+    grps_text <- ""
+    if (!is.null(groups(data))) {
+      grps <- groups(data) %>% as.character() %>% sapply(function(i) mdf[[i]][1])
+      grps_text <- paste0(names(grps), " = ", grps) %>% paste(collapse = ", ")
+    }
+
+    # regressions
+    corr_cats <- mdf$category %>% unique() %>% paste(collapse = ", ") # for drift into
+    args <- list(...)
+    reg_notes <- method
+    if (method == "loess") reg_notes <- paste0(reg_notes, " (span: ", span, ")")
+    if (method == "loess") args <- c(args, list(span = span, control = loess.control(surface = "direct")))
+    # "direct" is to allow extrapolation
+    m45 <- do.call(method, c(list(quote(d45 ~ x), data = quote(mdf)), args))
+    m46 <- do.call(method, c(list(quote(d46 ~ x), data = quote(mdf)), args))
+
+    # correction
+    run_numbers <- .$run_number %>% unique()
+    data.cor <-
+      left_join(., ggplot2:::predictdf(m45, run_numbers, se = F) %>%
+                  rename(.d45.adjust = y, run_number = x), by = "run_number")  %>%
+      left_join(ggplot2:::predictdf(m46, run_numbers, se = F) %>%
+                  rename(.d46.adjust = y, run_number = x), by = "run_number")  %>%
+      mutate(d45.cor = .d45 - .d45.adjust, d46.cor = .d46 - .d46.adjust,
+             p.drift = paste0(reg_notes, ": ", corr_cats)) %>%
+      select(-.d45.adjust, -.d46.adjust)
+
+    # fitting overview plot
+    if (plot) {
+
+      # plotting data
+      mdf <-
+        left_join(mdf, select(data.cor, run_number, d45.cor, d46.cor),
+                  by = "run_number") %>%
+        group_by(.group) %>%
+        mutate(
+          `d45 corrected` = d45.cor - mean(d45.cor),
+          `d46 corrected` = d46.cor - mean(d46.cor)
+        )
+
+      # plot label
+      label <- paste0(
+        "Correction ", if (correct) "applied" else "NOT applied",
+        "\n(method: ", method, ")\n", if (grps_text != "") grps_text)
+
+      # construct plot
+      method_args <- list(...)
+      (mdf %>% gather(panel, y, d45, d46, `d45 corrected`, `d46 corrected`) %>%
+        ggplot() + aes(x, y) +
+        stat_smooth(aes(color = .group, fill = .group), method = method, se = F) +
+        stat_smooth(method = method, span = span, method.args=method_args, se = T, size = 1.5, color = "black") +
+        geom_point(aes(color = .group), size = 3) +
+        facet_wrap(~panel, ncol = 2, scales = "free_y") +
+        theme_bw() + theme(legend.position = "left") +
+        labs(x = "Run #", color = "", fill = "", y = "deviation from mean in each grouping [permil]")
+      ) -> p1
+
+      (rbind(data.frame(residuals = m45$residuals, fitted = m45$fitted, panel = "d45 residual vs. fitted"),
+             data.frame(residuals = m46$residuals, fitted = m46$fitted, panel = "d46 residual vs. fitted")) %>%
+        ggplot() +
+        aes(fitted, residuals) + geom_point() +
+        stat_smooth(method = "loess", color = "red", se = F) +
+        facet_wrap(~panel, ncol = 1, scales = "free") + theme_bw()
+      ) -> p2
+
+      print(
+        cowplot::plot_grid(p1, p2, align = "h", rel_widths = c(5,2),
+                           labels=c(label, ''), hjust = 0, vjust = 1)
+        #+cowplot::draw_label(paste("Drift correction with fitting method", method), y = 1, vjust = 1, size = 18)
       )
+    }
 
-    # plot label
-    label <- paste0(
-      "Correction ", if (correct) "applied" else "NOT applied",
-      "\n(method: ", method, ")")
+    # assign data frame
+    if (correct) {
+      out <- data.cor
+    } else {
+      out <- mutate(., d45.cor = .d45, d46.cor = .d46, p.drift = "none")
+    }
 
-    # construct plot
-    method_args <- list(...)
-    (mdf %>% gather(panel, y, d45, d46, `d45 corrected`, `d46 corrected`) %>%
-      ggplot() + aes(x, y) +
-      stat_smooth(aes(color = .group, fill = .group), method = method, se = F) +
-      stat_smooth(method = method, span = span, method.args=method_args, se = T, size = 1.5, color = "black") +
-      geom_point(aes(color = .group), size = 3) +
-      facet_wrap(~panel, ncol = 2, scales = "free_y") +
-      theme_bw() + theme(legend.position = "left") +
-      labs(x = "Run #", color = "", fill = "", y = "deviation from mean in each grouping [permil]")
-    ) -> p1
+    # info messages
+    if (!quiet & correct) {
+      grp_sum <- filter(out, .included) %>% group_by(.group) %>%
+        summarize(d45.sd = sd(.d45), d46.sd = sd(.d46), d45.cor.sd = sd(d45.cor), d46.cor.sd = sd(d46.cor)) %>%
+        mutate(before = paste0(round(d45.sd, 2), "/", round(d46.sd, 2), " (", .group, ")"),
+               after = paste0(round(d45.cor.sd, 2), "/", round(d46.cor.sd, 2), " (", .group, ")"))
 
-    (rbind(data.frame(residuals = m45$residuals, fitted = m45$fitted, panel = "d45 residual vs. fitted"),
-           data.frame(residuals = m46$residuals, fitted = m46$fitted, panel = "d46 residual vs. fitted")) %>%
-      ggplot() +
-      aes(fitted, residuals) + geom_point() +
-      stat_smooth(method = "loess", color = "red", se = F) +
-      facet_wrap(~panel, ncol = 1, scales = "free") + theme_bw()
-    ) -> p2
+      if (grps_text != "")
+        grps_text <- paste0("\n      group: ", grps_text)
 
-    print(
-      cowplot::plot_grid(p1, p2, align = "h", rel_widths = c(5,2),
-                         labels=c(label, ''), hjust = 0, vjust = 1)
-      #+cowplot::draw_label(paste("Drift correction with fitting method", method), y = 1, vjust = 1, size = 18)
-      )
-  }
+      sprintf(paste(
+        "INFO: %s N2O analyses drift corrected (new data columns 'd45.cor' & 'd46.cor', and parameter 'p.drift' added)%s",
+        "\n      Used the '%s' method with included categories '%s'.",
+        "\n      Residual sum of squares: %.3f (d45), %.3f (d46)",
+        "\n      Standard deviations in d45/d46 before and after drift correction, by groupings:",
+        "\n      Before: %s",
+        "\n      After: %s"),
+        nrow(.), grps_text, method, corr_cats,
+        sqrt(sum(m45$residuals^2)), sqrt(sum(m46$residuals^2)),
+        grp_sum$before %>% paste(collapse = ", "), grp_sum$after %>% paste(collapse = ", ")) %>% message()
+    } else if (!quiet & !correct) {
+      message("INFO: no drift correction is being applied to this run (parameter column 'p.drift' added)")
+      if (grps_text != "") message("      group: ", grps_text)
+    }
 
-  # assign data frame
-  if (correct) {
-    data <- data.cor
-  } else {
-    data <- data %>% mutate(d45.cor = .d45, d46.cor = .d46, p.drift = "none")
-  }
+    return(out)
+  })
 
-  # info messages
-  if (!quiet & correct) {
-    grp_sum <- data %>% filter(.included) %>% group_by(.group) %>%
-      summarize(d45.sd = sd(.d45), d46.sd = sd(.d46), d45.cor.sd = sd(d45.cor), d46.cor.sd = sd(d46.cor)) %>%
-      mutate(before = paste0(round(d45.sd, 2), "/", round(d46.sd, 2), " (", .group, ")"),
-             after = paste0(round(d45.cor.sd, 2), "/", round(d46.cor.sd, 2), " (", .group, ")"))
-
-    sprintf(paste(
-      "INFO: %s N2O analyses drift corrected (new data columns 'd45.cor' & 'd46.cor', and parameter 'p.drift' added)",
-      "\n      Used the '%s' method with included categories '%s'.",
-      "\n      Residual sum of squares: %.3f (d45), %.3f (d46)",
-      "\n      Standard deviations in d45/d46 before and after drift correction, by groupings:",
-      "\n      Before: %s",
-      "\n      After: %s"),
-      nrow(data), method, corr_cats,
-      sqrt(sum(m45$residuals^2)), sqrt(sum(m46$residuals^2)),
-      grp_sum$before %>% paste(collapse = ", "), grp_sum$after %>% paste(collapse = ", ")) %>% message()
-  } else if (!quiet & !correct) {
-    message("INFO: no drift correction is being applied to this run (parameter column 'p.drift' added)")
-  }
-
-  data %>% select(-x, -.d45, -.d46, -.included, -.group) %>% return()
+  df %>% select(-x, -.d45, -.d46, -.included, -.group) %>% return()
 }
 
 
