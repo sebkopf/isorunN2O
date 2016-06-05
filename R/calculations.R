@@ -35,7 +35,7 @@ calculate_background <- function(data, area,
       grps_text <- ""
       if (!is.null(groups(data))) {
         grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
-        grps_text <- paste0("\n      Group: ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "))
+        grps_text <- paste0(" (for ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "), ")")
       }
 
       if ( is.na(sdf$p.bgrd[1]) ) {
@@ -55,29 +55,130 @@ calculate_background <- function(data, area,
 #' Set the bacterial background
 #'
 #' This can be calculated automatically based on identifying which analyses are
-#' measurements of the background alone (using \code{\link{calculated_background}}).
+#' measurements of the background alone (using \code{\link{calculate_background}}).
 #' This function is for setting this parameter manually in cases where the background
 #' is estimated or the peak was too small to be automatically recorded.
 #'
 #' @param data the data set
-#' @param area the numeric value of the bacterial blank area
+#' @param value the value of the bacterial blank area, can be an expression
 #' @return adds the parameter column p.bgrd
+#' @note uses non-standard evaluation
 #' @export
-set_background <- function(data, area, quiet = FALSE) {
-  if (!quiet) {
-    if(!is.null(data$p.bgrd)) {
-      msg <- sprintf("OVERWRITING (previous: %s)", data$p.bgrd %>% unique() %>% round(3) %>% paste(collapse = ", "))
-    } else
-      msg <- "adding"
+set_background <- function(data, value, quiet = FALSE) {
 
+  # check if overwriting
+  if(!is.null(data$p.bgrd)) {
+    msg <- sprintf("OVERWRITING (previous: %s)", data$p.bgrd %>% unique() %>% round(3) %>% paste(collapse = ", "))
+  } else
+    msg <- "adding"
+
+  # mutate data frame with area
+  data <- data %>%
+    mutate_(.dots = list(p.bgrd = interp(~x, x = lazy(value))))
+
+  if (!quiet) {
     sprintf(
-      "INFO: %s bacterial background parameter column 'p.bgrd' (new value = %.3f)",
-      msg, area) %>% message()
+      "INFO: %s bacterial background parameter column 'p.bgrd' (new: %s)",
+      msg, data$p.bgrd %>% unique() %>% round(3) %>% paste(collapse = ", ")) %>% message()
   }
 
-  data$p.bgrd <- area
   return(data)
 }
+
+
+
+#' Calculate oxidation blank area/volume
+#'
+#' Calculates the oxidation blank area to volume ratio from the direct
+#' measurements of the blank peak. For setting this parameter manually, please use
+#' \code{\link{set_oxidation_blank}}.
+#'
+#' @param data (can be a grouped_by data set)
+#' @param area the area column
+#' @param volume the volume column
+#' @param criteria the expression used to find the analyses
+#' @param update_category value to update the found records category to
+#'    (pass in NULL if no update of category is desired)
+#' @seealso \code{\link{change_category}}
+#' @return adds the parameter column p.oblank
+#' @export
+calculate_oxidation_blank <- function(data, area, volume,
+                                 criteria = grepl("POR Blank", name),
+                                 update_category = "oxidation blank",
+                                 quiet = FALSE) {
+
+  if (missing(area)) stop("please specify the column that holds the peak area")
+  if (missing(volume)) stop("please specify the column that holds the injection volume")
+  if (!is.null(update_category))
+    data <- do.call(change_category, list(data, substitute(criteria), update_category))
+
+  # calculate background (preserves group_by during the mutate)
+  fields <- list(p.oblank = interp(
+    ~mean(x[crit]/as.numeric(y[crit]), na.rm = T),
+    x = substitute(area), y = substitute(volume), crit = substitute(criteria)))
+  df <- data %>% mutate_(.dots = fields) %>%
+    # make sure if it's not-a-number to switch to NA
+    mutate(p.oblank = ifelse(!is.nan(p.oblank[1]), p.oblank, NA_real_))
+
+  if (!quiet) {
+    # use do to preserve grouping if any is set
+    df %>% do({
+
+      # group info
+      sdf <- .
+      grps_text <- ""
+      if (!is.null(groups(data))) {
+        grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
+        grps_text <- paste0(" (for ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "), ")")
+      }
+
+      if ( is.na(sdf$p.bgrd[1]) ) {
+        sprintf("INFO: oxidation blank could NOT be identified, 'p.oblank' is NA%s",
+                grps_text) %>% message()
+      } else {
+        sprintf("INFO: oxidation blank identified and area/volume ratio stored in parameter column 'p.oblank': %.3f%s",
+                sdf$p.oblank[1], grps_text) %>% message()
+      }
+      data_frame()
+    })
+  }
+
+  df %>% return()
+}
+
+#' Set the oxdiation blank arae/volume
+#'
+#' This can be calculated automatically based on identifying which analyses are
+#' measurements of the oxidation blank alone (using \code{\link{calculate_oxidation_blank}}).
+#' This function is for setting this parameter manually in cases where the background
+#' is estimated or the peak was too small to be automatically recorded.
+#'
+#' @param data the data set
+#' @param value the numeric value of the oxidation blank area/volume ratio
+#' @return adds the parameter column p.oblank
+#' @export
+set_oxidation_blank <- function(data, value, quiet = FALSE) {
+
+  if(!is.null(data$p.oblank)) {
+    msg <- sprintf("OVERWRITING (previous: %s)", data$p.oblank %>% unique() %>% round(3) %>% paste(collapse = ", "))
+  } else
+    msg <- "adding"
+
+  # mutate data frame with area
+  data <- data %>%
+    mutate_(.dots = list(p.oblank = interp(~x, x = lazy(value))))
+
+  if (!quiet) {
+
+    sprintf(
+      "INFO: %s oxidation blank parameter column 'p.oblank' (new: %s)",
+      msg, data$p.oblank %>% unique() %>% round(3) %>% paste(collapse = ", ")) %>% message()
+  }
+
+  return(data)
+}
+
+
 
 
 #' Set the run size
