@@ -22,7 +22,8 @@ Imports:
     lazyeval,
     tidyr,
     isoread,
-    cowplot
+    cowplot,
+    gtools
 Suggests:
     testthat,
     rmarkdown,
