@@ -1,7 +1,8 @@
 #' Calculate background area
 #'
-#' Calculates the background area from the direct measurement of the
-#' background peak. This blank is also estimated by calibrate_d15().
+#' Calculates the bacterial background area from the direct measurement of the
+#' background peak. For setting this parameter manually, please use
+#' \code{\link{set_background}}.
 #'
 #' @param data (can be a grouped_by data set)
 #' @param area the area column
@@ -9,7 +10,7 @@
 #' @param update_category value to update the found records category to
 #'    (pass in NULL if no update of category is desired)
 #' @seealso \code{\link{change_category}}
-#' @return introduces the parameter columns p.bgrd
+#' @return adds the parameter column p.bgrd
 #' @export
 calculate_background <- function(data, area,
                                  criteria = name %in% c("background", "Background"),
@@ -19,23 +20,69 @@ calculate_background <- function(data, area,
   if (!is.null(update_category))
     data <- do.call(change_category, list(data, substitute(criteria), update_category))
 
-  # calculate background
-  fields <- list(p.bgrd = interp(~mean(x[crit]), x = substitute(area), crit = substitute(criteria)))
-  df <- data %>% mutate_(.dots = fields)
+  # calculate background (preserves group_by during the mutate)
+  fields <- list(p.bgrd = interp(~mean(x[crit], na.rm = T), x = substitute(area), crit = substitute(criteria)))
+  df <- data %>% mutate_(.dots = fields) %>%
+    # make sure if it's not-a-number to switch to NA
+    mutate(p.bgrd = ifelse(!is.nan(p.bgrd[1]), p.bgrd, NA_real_))
 
   if (!quiet) {
-    bgrds <- (df %>% summarize(p.bgrd = mean(p.bgrd)))$p.bgrd %>% round(3) %>% paste(collapse = ",")
-    sprintf("INFO: background area calculated and stored in new parameter column 'p.bgrd': %s",
-            bgrds) %>% message()
+    # use do to preserve grouping if any is set
+    df %>% do({
+
+      # group info
+      sdf <- .
+      grps_text <- ""
+      if (!is.null(groups(data))) {
+        grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
+        grps_text <- paste0("\n      Group: ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "))
+      }
+
+      if ( is.na(sdf$p.bgrd[1]) ) {
+        sprintf("INFO: bacterial background could NOT be identified, 'p.bgrd' is NA%s",
+                grps_text) %>% message()
+      } else {
+        sprintf("INFO: bacterial background identified and area stored in parameter column 'p.bgrd': %.3f%s",
+                sdf$p.bgrd[1], grps_text) %>% message()
+      }
+      data_frame()
+    })
   }
 
   df %>% return()
 }
 
+#' Set the bacterial background
+#'
+#' This can be calculated automatically based on identifying which analyses are
+#' measurements of the background alone (using \code{\link{calculated_background}}).
+#' This function is for setting this parameter manually in cases where the background
+#' is estimated or the peak was too small to be automatically recorded.
+#'
+#' @param data the data set
+#' @param area the numeric value of the bacterial blank area
+#' @return adds the parameter column p.bgrd
+#' @export
+set_background <- function(data, area, quiet = FALSE) {
+  if (!quiet) {
+    if(!is.null(data$p.bgrd)) {
+      msg <- sprintf("OVERWRITING (previous: %s)", data$p.bgrd %>% unique() %>% round(3) %>% paste(collapse = ", "))
+    } else
+      msg <- "adding"
+
+    sprintf(
+      "INFO: %s bacterial background parameter column 'p.bgrd' (new value = %.3f)",
+      msg, area) %>% message()
+  }
+
+  data$p.bgrd <- area
+  return(data)
+}
+
 
 #' Set the run size
 #'
-#' Not that this is calculated automatically when using calculate_concentrations,
+#' Note that this is calculated automatically when using calculate_concentrations,
 #' only use this function to set the run size manually or overwrite automatic
 #' calculations from calculate_concentrations.
 #' @param data the data set
@@ -280,7 +327,8 @@ calibrate_d15_org <- function(data, d15, volume = volume, standards = c("USGS-40
         sdf,
         p.d15o_stds = stds.label,
         d15.ocal = (.d15 - beta3 * .V - beta0)/(beta1 + beta2 * .V),
-        d15.obase = d15.ocal * (beta1 + beta2 * .V) + beta3 * .V + beta0,
+        d15.ocal_no_cross = (.d15 - beta3 * .V - beta0)/(beta1),
+        d15.ocal_no_vol = (.d15 - beta0)/(beta1 + beta2 * .V),
         # coefficients
         p.d15o_m_true = beta1,
         p.d15o_m_vol = beta3,
@@ -416,3 +464,129 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
     }) %>%
     select(-.d18, -.V, -.amount, -.C_vial)
 }
+
+
+
+
+
+calibrate_d15_org_wblanks <- function(
+  data, d15, volume = volume, standards = c("USGS-40" = -4.50, "USGS-41" = 47.60),
+  infer_NO3_blank = FALSE, ref_gas_d15 = 0, quiet = FALSE) {
+
+  # safety checks
+  if (missing(d15)) stop("please specify the column that holds the d15 values to calibrate")
+  if (is.null(data$category)) stop("need to have categories, please parse_file_names first")
+  if (is.null(data$p.run_size)) stop("need to know run size (p.run_size) to infer blank parameters, ",
+                                     "please create this column via set_run_size() or calculate_concentrations() first")
+
+  if ( length(missing <- setdiff(names(standards), data$category)) > 0 )
+    stop("some of the standards' names do not match the categories in this dataset, check spelling: ",
+         paste(missing, collapse = ", "), call. = F)
+
+  # standards and calculate fields
+  stds.df <- data_frame(category = names(standards), .d15.true = standards)
+  stds.label <- (stds.df %>% mutate(label = paste0(category, " (", .d15.true, ")")))$label %>% paste(collapse = " & ")
+  fields <- list(
+    .d15 = interp(~var, var = substitute(d15)),
+    .V = interp(~as.numeric(var), var = substitute(volume))
+  )
+
+  # ref gas value and error
+  ref_gas_d15.err <- if (length(ref_gas_d15) > 1) ref_gas_d15[2] else 0
+  ref_gas_d15 <- ref_gas_d15[1]
+
+  # go through (accounting for all grouping)
+  data %>% mutate_(.dots = fields) %>% # creating .d15 once here is easier to handle
+    do({
+
+      # sub frame
+      sdf <- .
+
+      # regression model: d15 = beta0 + beta1 * d15.true + beta2 * d15.true * V + beta3 * V
+      m <- filter(sdf, category %in% names(standards)) %>%
+        left_join(stds.df, by = "category") %>%
+        with(lm(.d15 ~ .d15.true + .V + .d15.true:.V))
+      coefs <- as.data.frame(coef(summary(m)))
+      coefs <- coefs %>% mutate(coef = rownames(coefs))
+
+      # coefficients
+      beta0 <- (coefs %>% filter(coef == "(Intercept)"))$Estimate
+      beta0.err <- (coefs %>% filter(coef == "(Intercept)"))$`Std. Error`
+      beta1 <- (coefs %>% filter(coef == ".d15.true"))$Estimate
+      beta1.err <- (coefs %>% filter(coef == ".d15.true"))$`Std. Error`
+      beta2 <- (coefs %>% filter(coef == ".d15.true:.V"))$Estimate
+      beta2.err <- (coefs %>% filter(coef == ".d15.true:.V"))$`Std. Error`
+      beta3 <- (coefs %>% filter(coef == ".V"))$Estimate
+      beta3.err <- (coefs %>% filter(coef == ".V"))$`Std. Error`
+
+      # calculate delta and add parameters
+      p.run_size.err <- 0 # FIXME, might want to allow defining this?
+      out <- mutate(
+        sdf,
+        p.d15o_stds = stds.label,
+        d15.ocal = (.d15 - beta3 * .V - beta0)/(beta1 + beta2 * .V),
+        d15.ocal_no_cross = (.d15 - beta3 * .V - beta0)/(beta1),
+        d15.ocal_no_vol = (.d15 - beta0)/(beta1 + beta2 * .V),
+        # coefficients
+        p.d15o_m_true = beta1,
+        p.d15o_m_vol = beta3,
+        `p.d15o_m_true:vol` = beta2,
+        p.d15o_b = beta0,
+        # N organic blank
+        p.No_blk_conc = -beta2/beta1 * p.run_size,
+        p.No_blk_conc.err = abs(p.No_blk_conc) * sqrt((beta1.err/beta1)^2 + (beta2.err/beta2)^2 + (p.run_size.err/p.run_size)^2),
+        p.No_blk_d15 = -beta3/beta2,
+        p.No_blk_d15.err = abs(p.No_blk_d15) * sqrt( (beta2.err/beta2)^2 + (beta3.err/beta3)^2 )
+      )
+
+      # for full step also adding the nitrate blank parameters
+      if (infer_NO3_blank) {
+        out <- out %>%
+          mutate(
+            p.ref_gas_d15 = ref_gas_d15,
+            p.N_blk_amt = p.run_size * (1 - beta1) / beta1,
+            p.N_blk_amt.err = sqrt( ( (1/beta1 + 1) * p.run_size.err )^2 + (p.run_size/beta1^2 * beta1.err)^2 ),
+            p.N_blk_d15 = (beta0 + ref_gas_d15) * 1 / (1 - beta1),
+            p.N_blk_d15.err = abs(1/(1-beta1)) * sqrt( (beta0.err)^2 + ( (beta0 + ref_gas_d15)/beta1 * beta1.err)^2 + (ref_gas_d15.err)^2 ))
+      }
+
+      # info messages
+      if (!quiet) {
+
+        # group info
+        grps_text <- ""
+        if (!is.null(groups(data))) {
+          grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
+          grps_text <- paste0(names(grps), " = ", grps) %>% paste(collapse = ", ")
+          grps_text <- paste0("\n      Group: ", grps_text)
+        }
+
+        msg <- sprintf(
+          paste(
+            "INFO: organic d15 values calibrated (new columm 'd15.ocal') using %s --> stored in 'p.d15o_stds'",
+            "%s\n      Calibration with regression cofficients (measured vs. true * volume):",
+            "\n      'p.d15o_m_true' (%s), 'p.d15o_m_true:vol' (%s), 'p.d15o_m_vol' (%s) and intercept 'p.d15o_b' (%s) added."),
+          stds.label, grps_text, round_to_err(beta1, beta1.err), round_to_err(beta2, beta2.err),
+          round_to_err(beta3, beta3.err), round_to_err(beta0, beta0.err))
+
+        if (infer_NO3_blank) {
+          msg <- sprintf(
+            "%s\n      Inferred nitrate blank information (for 'p.ref_gas_d15' = %s permil) added as 'p.N_blk_amt' (%s usually nmol) and 'p.N_blk_d15' (%s permil)",
+            msg, round_to_err(ref_gas_d15, ref_gas_d15.err),
+            round_to_err(out$p.N_blk_amt, out$p.N_blk_amt.err) %>% unique() %>% paste(collapse = ", "),
+            round_to_err(out$p.N_blk_d15, out$p.N_blk_d15.err) %>% unique() %>% paste(collapse = ", "))
+        }
+
+        msg <- sprintf(
+          "%s\n      Inferred organic N blank information added as 'p.No_blk_conc' (%s usually microM if volume in mL) and 'p.No_blk_d15' (%s permil)",
+          msg,
+          round_to_err(out$p.No_blk_conc, out$p.No_blk_conc.err, 2) %>% unique() %>% paste(collapse = ", "),
+          round_to_err(out$p.No_blk_d15, out$p.No_blk_d15.err, 2) %>% unique() %>% paste(collapse = ", "))
+
+        message(msg)
+      }
+      return(out)
+
+    }) %>% select(-.d15, -.V)
+}
+
