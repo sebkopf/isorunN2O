@@ -672,6 +672,10 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
   if (missing(cell_volume)) stop("please specify the denitrifier cells volume")
   if (length(standards) == 1) stop("sorry, single point correction is not currently supported")
 
+  stds.df <- data_frame(category = names(standards), d18.true = standards)
+  stds.label <- (stds.df %>% mutate(label = paste0(category, " (", d18.true, ")")))$label %>%
+    paste(collapse = " & ")
+
   fields <- list(
     .d18 = interp(~var, var = substitute(d18)),
     .amount = interp(~var, var = substitute(amount)),
