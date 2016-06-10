@@ -132,7 +132,7 @@ calculate_oxidation_blank <- function(data, area, volume,
         grps_text <- paste0(" (for ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "), ")")
       }
 
-      if ( is.na(sdf$p.bgrd[1]) ) {
+      if ( is.na(sdf$p.oblank[1]) ) {
         sprintf("INFO: oxidation blank could NOT be identified, 'p.oblank' is NA%s",
                 grps_text) %>% message()
       } else {
@@ -294,97 +294,46 @@ get_calib_coef <- function(key, model, name) {
 
 #' Calibrate d15 values with the given standards
 #' @param data (can be a grouped_by data set)
+#' @param d15 the d15 column
+#' @param area the area (signal) column
 #' @param standards a set of isotope standards
 #'  Note: they are matched to the data by "category" (not by name)
-#' @param d15 the d15 column
+#' @param infer_ref_gas whether to infer reference gas (N2O) isotopic composition from the regression
+#' @param infer_bgrd whether to infer bacterial background from the regression
 #' @return introduces the column d15.cal and parameters p.15_stds, p.d15_m and p.d15_b as well as p.bgrd_area and p.bgrd_d15
 #' @note implement single point correction
 #' @note consider removing the storage of the regression parameters since they can be inferred from the others
 #' @export
-calibrate_d15 <- function(data, d15, area, standards = c("USGS-34" = -1.8, "IAEA-NO3" = 4.7), quiet = FALSE) {
+calibrate_d15 <- function(data, d15, area, standards = c("USGS-34" = -1.8, "IAEA-NO3" = 4.7),
+                          infer_ref_gas = TRUE, infer_bgrd = TRUE, quiet = FALSE) {
 
-  if (is.null(data$category)) stop("need to have categories, please parse_file_names first")
-  if (missing(d15)) stop("please specify the column that holds the d15 values to calibrate")
+  if (missing(d15)) stop("please specify the column that holds the d15 values to calibrate", call. = FALSE)
   if (missing(area)) stop("please specify the column that holds the area values", call. = FALSE)
   if (length(standards) == 1) stop("sorry, single point correction is not implemented yet") #FIXME
 
-  stds.df <- data_frame(category = names(standards), .d15.true = standards)
-  stds.label <- (stds.df %>% mutate(label = paste0(category, " (", .d15.true, ")")))$label %>% paste(collapse = " & ")
   fields <- list(
     .d15 = interp(~var, var = substitute(d15)),
-    .A = interp(~var, var = substitute(area)),
-    .AI = interp(~1/.A) # inverse area
+    .A = interp(~var, var = substitute(area))
   )
 
-  # ref gas value and error
-  ref_gas_d15.err <- if (length(ref_gas_d15) > 1) ref_gas_d15[2] else 0
-  ref_gas_d15 <- ref_gas_d15[1]
-
-  data %>% mutate_(.dots = fields) %>% # creating .d15 once here is easier to handle
-    do({
-
-      # sub frame
-      sdf <- .
-
-      # regression model
-      m <- filter(sdf, category %in% names(standards)) %>%
-        left_join(stds.df, by = "category") %>%
-        with(lm(.d15 ~ .d15.true))
-      coefs <- as.data.frame(coef(summary(m)))
-      coefs <- coefs %>% mutate(coef = rownames(coefs))
-
-      # coefficients
-      beta0 <- (coefs %>% filter(coef == "(Intercept)"))$Estimate
-      beta0.err <- (coefs %>% filter(coef == "(Intercept)"))$`Std. Error`
-      beta1 <- (coefs %>% filter(coef == ".d15.true"))$Estimate
-      beta1.err <- (coefs %>% filter(coef == ".d15.true"))$`Std. Error`
-
-
-      # add parameters and calculate delta
-      p.run_size.err <- 0 # FIXME, might want to allow defining this?
-      out <- mutate(sdf,
-        p.d15_stds = stds.label,
-        p.d15_m = beta1,
-        p.d15_b = beta0,
-        d15.cal = (.d15 - beta0)/beta1,
-        p.ref_gas_d15 = ref_gas_d15,
-        p.N_blk_amt = p.run_size * (1 - beta1) / beta1,
-        p.N_blk_amt.err = sqrt( ( (1/beta1 + 1) * p.run_size.err )^2 + (p.run_size/beta1^2 * beta1.err)^2 ),
-        p.N_blk_d15 = (beta0 + ref_gas_d15) * 1 / (1 - beta1),
-        p.N_blk_d15.err = abs(1/(1-beta1)) * sqrt( (beta0.err)^2 + ( (beta0 + ref_gas_d15)/beta1 * beta1.err)^2 + (ref_gas_d15.err)^2 ))
-
-      if (!quiet) {
-
-        # group info
-        grps_text <- ""
-        if (!is.null(groups(data))) {
-          grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
-          grps_text <- paste0(names(grps), " = ", grps) %>% paste(collapse = ", ")
-          grps_text <- paste0("\n      Group: ", grps_text)
-        }
-
-        sprintf(
-          paste(
-            "INFO: d15 values calibrated (new columm 'd15.cal') using %s --> stored in 'p.d15_stds'",
-            "%s\n      Parameter columns for calibration slope (measured vs. true) 'p.d15_m' (%.3f) and intercept 'p.d15_b' (%.3f) added.",
-            "\n      Inferred blank information (for 'p.ref_gas_d15' = %s permil) added as ",
-            "'p.N_blk_amt' (%s usually nmol) and 'p.N_blk_d15' (%s permil)"),
-          stds.label, grps_text, beta1, beta0, round_to_err(ref_gas_d15, ref_gas_d15.err),
-          round_to_err(out$p.N_blk_amt, out$p.N_blk_amt.err) %>% unique() %>% paste(collapse = ", "),
-          round_to_err(out$p.N_blk_d15, out$p.N_blk_d15.err) %>% unique() %>% paste(collapse = ", ")) %>%
-          message()
-      }
-
-      return(out)
-
-    }) %>% select(-.d15)
+  # run calibration
+  data %>%
+    mutate_(.dots = fields) %>%
+    run_d15_calibration(
+      standards = standards, organic = FALSE, quiet = quiet,
+      infer_ref_gas = infer_ref_gas, infer_bgrd = infer_bgrd) %>%
+    select(-.d15, -.A)
 }
 
 #' Calibrate organic d15 values with the given standards
 #' @param data (can be a grouped_by data set)
+#' @param d15 the d15 column
+#' @param area the area (signal) column
 #' @param standards a set of isotope standards
 #'  Note: they are matched to the data by "category" (not by name)
-#' @param d15 the d15 column
+#' @param infer_ref_gas whether to infer reference gas (N2O) isotopic composition from the regression
+#' @param infer_bgrd whether to infer bacterial background from the regression
+#' @param infer_oblank wheter to infer the organic blank from the regression
 #' @return introduces the column d15.ocal and parameters p.15o_stds,
 #'    as well as information on the organic blank A/V ratio p.oblank_ratio
 #'    and p.oblank_d15 and p.N_blk_amt and bacterial background area
@@ -392,41 +341,67 @@ calibrate_d15 <- function(data, d15, area, standards = c("USGS-34" = -1.8, "IAEA
 #' @note should this also record the actual regression parameters?
 #' @export
 calibrate_d15_org <- function(
-  data, d15, area, volume, standards = c("USGS-40" = -4.50, "USGS-41" = 47.60), quiet = FALSE) {
+  data, d15, area, volume, standards = c("USGS-40" = -4.50, "USGS-41" = 47.60),
+  infer_ref_gas = TRUE, infer_bgrd = TRUE, infer_oblank = TRUE, quiet = FALSE) {
 
   # safety checks
   if (missing(d15)) stop("please specify the column that holds the d15 values to calibrate", call. = FALSE)
   if (missing(area)) stop("please specify the column that holds the area values", call. = FALSE)
   if (missing(volume)) stop("please specify the column that holds the volume values", call. = FALSE)
-  if (is.null(data$category)) stop("need to have categories, please parse_file_names first", call. = FALSE)
 
+  fields <- list(
+    .d15 = interp(~var, var = substitute(d15)),
+    .A = interp(~var, var = substitute(area)),
+    .V = interp(~as.numeric(var), var = substitute(volume))
+  )
+
+  # run calibration
+  data %>%
+    mutate_(.dots = fields) %>%
+    run_d15_calibration(
+      standards = standards, organic = TRUE, quiet = quiet,
+      infer_ref_gas = infer_ref_gas, infer_bgrd = infer_bgrd, infer_oblank = infer_oblank) %>%
+    select(-.d15, -.V, -.A)
+}
+
+#' runs the d15 calibration internally
+#' called from calibrate_d15 and calibrate_d15_org
+run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, infer_bgrd = TRUE, infer_oblank = TRUE, quiet = FALSE) {
+
+  if (is.null(data$category)) stop("need to have categories, please parse_file_names first", call. = FALSE)
   if ( length(missing <- setdiff(names(standards), data$category)) > 0 )
     stop("some of the standards' names do not match the categories in this dataset, check spelling: ",
          paste(missing, collapse = ", "), call. = F)
 
-  # standards and calculate fields
+  # internal checks
+  if (is.null(data$.d15)) stop(".d15 missing")
+  if (is.null(data$.A)) stop(".A missing")
+  if (organic && is.null(data$.V)) stop(".V missing")
+
   stds.df <- data_frame(category = names(standards), .d15.true = standards)
   stds.label <- (stds.df %>% mutate(label = paste0(category, " (", .d15.true, ")")))$label %>% paste(collapse = " & ")
-  fields <- list(
-    .d15 = interp(~var, var = substitute(d15)),
-    .A = interp(~var, var = substitute(area)),
-    .V = interp(~as.numeric(var), var = substitute(volume)),
-    .AI = interp(~1/.A) # inverse area
-  )
 
   # go through (accounting for all grouping)
   data %>%
-    mutate_(.dots = fields) %>%
+    mutate(.AI = 1/.A) %>%
     do({
 
       # sub frame
       sdf <- .
 
-      m <- sdf %>%
+      # standards
+      stds <- sdf %>%
         filter(., category %in% names(standards)) %>%
         left_join(stds.df, by = "category") %>%
-        mutate(y = .d15 - .d15.true) %>%
-        with(lm(y ~ .V : .AI : .d15.true + .AI : .d15.true + .V : .AI + .AI))
+        mutate(y = .d15 - .d15.true)
+
+      # model
+      if (organic)
+        # with volume
+        m <- with(stds, lm(y ~ .V : .AI : .d15.true + .AI : .d15.true + .V : .AI + .AI))
+      else
+        # without volume
+        m <- with(stds, lm(y ~ .AI : .d15.true + .AI))
 
       # coefficients
       bs <- c(
@@ -437,23 +412,48 @@ calibrate_d15_org <- function(
         get_calib_coef("b4", m, ".AI")
       )
 
-      # calculate delta and add parameters
-      out <- mutate(
-        sdf,
-        p.d15o_stds = stds.label,
-        d15.ocal = (.d15  - bs$b0 - bs$b3 * .V * .AI - bs$b4 * .AI) / ( 1 + bs$b1 * .V * .AI + bs$b2 * .AI ),
-        # derived quantities
-        p.ref_gas_d15 = -bs$b0,
-        p.ref_gas_d15.err = bs$b0.err,
-        p.oblank_ratio = -bs$b1,
-        p.oblank_ratio.err = bs$b1.err,
-        p.oblank_d15 = -bs$b3/bs$b1,
-        p.oblank_d15.err = abs(p.oblank_d15) * sqrt( (bs$b3.err/bs$b3)^2 + (bs$b1.err/bs$b1)^2 ),
-        p.bgrd_area = -bs$b2,
-        p.bgrd_area.err = bs$b2.err,
-        p.bgrd_d15 = -bs$b4/bs$b2,
-        p.bgrd_d15.err = abs(p.bgrd_d15) * sqrt( (bs$b4.err/bs$b4)^2 + (bs$b2.err/bs$b2)^2 )
-      )
+      # calibration
+      if (organic) {
+        out <- sdf %>%
+        mutate(
+          p.d15o_stds = stds.label,
+          d15.ocal = (.d15  - bs$b0 - bs$b3 * .V * .AI - bs$b4 * .AI) / ( 1 + bs$b1 * .V * .AI + bs$b2 * .AI ))
+      } else {
+        out <- sdf %>%
+        mutate(
+          p.d15_stds = stds.label,
+          d15.cal = (.d15  - bs$b0 - bs$b4 * .AI) / ( 1 + bs$b2 * .AI ))
+      }
+
+      # parameter reference gas
+      if (infer_ref_gas) {
+        out <- out %>%
+          mutate(
+            p.ref_gas_d15 = -bs$b0,
+            p.ref_gas_d15.err = bs$b0.err)
+      }
+
+      # parameter bacterial backgroudn
+      if (infer_bgrd) {
+        out <- out %>%
+          mutate(
+            p.bgrd_area = -bs$b2,
+            p.bgrd_area.err = bs$b2.err,
+            p.bgrd_d15 = -bs$b4/bs$b2,
+            p.bgrd_d15.err = abs(p.bgrd_d15) * sqrt( (bs$b4.err/bs$b4)^2 + (bs$b2.err/bs$b2)^2 )
+          )
+      }
+
+      # organic blank
+      if (organic && infer_oblank) {
+        out <- out %>%
+          mutate(
+            p.oblank_ratio = -bs$b1,
+            p.oblank_ratio.err = bs$b1.err,
+            p.oblank_d15 = -bs$b3/bs$b1,
+            p.oblank_d15.err = abs(p.oblank_d15) * sqrt( (bs$b3.err/bs$b3)^2 + (bs$b1.err/bs$b1)^2 )
+          )
+      }
 
       # info messages
       if (!quiet) {
@@ -465,31 +465,56 @@ calibrate_d15_org <- function(
           grps_text <- paste0("\n      Group: ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "))
         }
 
-        msg <- sprintf(
-          paste(
-            "INFO: organic d15 values calibrated (new columm 'd15.ocal') using %s --> stored in 'p.d15o_stds'",
-            "%s\n      Regression: %s (d15*V/A, p=%s), %s (d15/A, p=%s), %s (V/A, p=%s), %s (1/A, p=%s), %s (intercept, p=%s)",
-            "\n      Inferred reference gas isotopic composition: %s permil (added as 'p.ref_gas_d15')",
-            "\n      Inferred bacterial background area: %s (added as 'p.bgrd_area') & isotopic composition: %s permil (added as 'p.bgrd_d15')",
-            "\n      Inferred organic blank area/volume: %s (added as 'p.oblank_ratio') & isotopic composition: %s permil (added as 'p.oblank_d15')"),
-          stds.label, grps_text,
-          round_to_err(bs$b1, bs$b1.err), paste(signif(bs$b1.p,1)), round_to_err(bs$b2, bs$b2.err), paste(signif(bs$b2.p,1)),
-          round_to_err(bs$b3, bs$b3.err), paste(signif(bs$b3.p,1)), round_to_err(bs$b4, bs$b4.err), paste(signif(bs$b4.p,1)),
-          round_to_err(bs$b0, bs$b0.err), paste(signif(bs$b0.p,1)),
-          round_to_err(out$p.ref_gas_d15, out$p.ref_gas_d15.err) %>% unique() %>% paste(collapse = ", "),
-          round_to_err(out$p.bgrd_area, out$p.bgrd_area.err) %>% unique() %>% paste(collapse = ", "),
-          round_to_err(out$p.bgrd_d15, out$p.bgrd_d15.err) %>% unique() %>% paste(collapse = ", "),
-          round_to_err(out$p.oblank_ratio, out$p.oblank_ratio.err) %>% unique() %>% paste(collapse = ", "),
-          round_to_err(out$p.oblank_d15, out$p.oblank_d15.err) %>% unique() %>% paste(collapse = ", ")
-        )
+        if (organic) {
+          msg <- sprintf(
+            paste(
+              "INFO: organic d15 values calibrated (new columm 'd15.ocal') using %s --> stored in 'p.d15o_stds'",
+              "%s\n      Regression: %s (d15*V/A, p=%s), %s (d15/A, p=%s), %s (V/A, p=%s), %s (1/A, p=%s), %s (intercept, p=%s)"),
+            stds.label, grps_text,
+            round_to_err(bs$b1, bs$b1.err), paste(signif(bs$b1.p,1)), round_to_err(bs$b2, bs$b2.err), paste(signif(bs$b2.p,1)),
+            round_to_err(bs$b3, bs$b3.err), paste(signif(bs$b3.p,1)), round_to_err(bs$b4, bs$b4.err), paste(signif(bs$b4.p,1)),
+            round_to_err(bs$b0, bs$b0.err), paste(signif(bs$b0.p,1))
+          )
+        } else {
+          msg <- sprintf(
+            paste(
+              "INFO: d15 values calibrated (new columm 'd15.cal') using %s --> stored in 'p.d15_stds'",
+              "%s\n      Regression: %s (d15/A, p=%s), %s (1/A, p=%s), %s (intercept, p=%s)"),
+            stds.label, grps_text,
+            round_to_err(bs$b2, bs$b2.err), paste(signif(bs$b2.p,1)),
+            round_to_err(bs$b4, bs$b4.err), paste(signif(bs$b4.p,1)),
+            round_to_err(bs$b0, bs$b0.err), paste(signif(bs$b0.p,1))
+          )
+        }
+
+        # parameters
+        if (infer_ref_gas) {
+          msg <- sprintf(
+            "%s\n      Inferred reference gas isotopic composition: %s permil (added as 'p.ref_gas_d15')",
+            msg, round_to_err(out$p.ref_gas_d15, out$p.ref_gas_d15.err) %>% unique() %>% paste(collapse = ", "))
+        }
+
+        if (infer_bgrd) {
+          msg <- sprintf(
+            "%s\n      Inferred bacterial background area: %s (added as 'p.bgrd_area') & isotopic composition: %s permil (added as 'p.bgrd_d15')",
+            msg, round_to_err(out$p.bgrd_area, out$p.bgrd_area.err) %>% unique() %>% paste(collapse = ", "),
+            round_to_err(out$p.bgrd_d15, out$p.bgrd_d15.err) %>% unique() %>% paste(collapse = ", ")
+          )
+        }
+
+        if (organic && infer_oblank) {
+          msg <- sprintf(
+            "%s\n      Inferred organic blank area/volume: %s (added as 'p.oblank_ratio') & isotopic composition: %s permil (added as 'p.oblank_d15')",
+            msg, round_to_err(out$p.oblank_ratio, out$p.oblank_ratio.err) %>% unique() %>% paste(collapse = ", "),
+            round_to_err(out$p.oblank_d15, out$p.oblank_d15.err) %>% unique() %>% paste(collapse = ", ")
+          )
+        }
+
         message(msg)
       }
       return(out)
-
-    }) %>% select(-.d15, -.V, -.A, -.AI)
+    }) %>% select(-.AI)
 }
-
-
 
 #' Calibrate organic d15 values with the given standards
 #' @param data (can be a grouped_by data set)
@@ -647,8 +672,6 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
   if (missing(cell_volume)) stop("please specify the denitrifier cells volume")
   if (length(standards) == 1) stop("sorry, single point correction is not currently supported")
 
-  stds.df <- data_frame(category = names(standards), d18.true = standards)
-  stds.label <- (stds.df %>% mutate(label = paste0(category, " (", d18.true, ")")))$label %>% paste(collapse = " & ")
   fields <- list(
     .d18 = interp(~var, var = substitute(d18)),
     .amount = interp(~var, var = substitute(amount)),
