@@ -4,31 +4,36 @@
 \alias{calibrate_d15_org}
 \title{Calibrate organic d15 values with the given standards}
 \usage{
-calibrate_d15_org(data, d15, volume = volume, standards = c(`USGS-40` =
-  -4.5, `USGS-41` = 47.6), infer_NO3_blank = FALSE, ref_gas_d15 = 0,
-  quiet = FALSE)
+calibrate_d15_org(data, d15, area, volume, standards = c(`USGS-40` = -4.5,
+  `USGS-41` = 47.6), infer_ref_gas = TRUE, infer_bgrd = TRUE,
+  infer_oblank = TRUE, quiet = FALSE)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}
 
-\item{d15}{the d15 column (can be a column already calibrated for denitrifier method)}
+\item{d15}{the d15 column}
+
+\item{area}{the area (signal) column}
 
 \item{standards}{a set of isotope standards
 Note: they are matched to the data by "category" (not by name)}
 
-\item{infer_NO3_blank}{whether to infer the NO3 blank from this correction in addition to the organic blank (if using a single step correction)}
+\item{infer_ref_gas}{whether to infer reference gas (N2O) isotopic composition from the regression}
 
-\item{ref_gas_d15}{the reference gas isotopic composition (only used if infer_NO3_blank = TRUE, to constrain culture blank d15)}
+\item{infer_bgrd}{whether to infer bacterial background from the regression}
+
+\item{infer_oblank}{wheter to infer the organic blank from the regression}
 }
 \value{
 introduces the column d15.ocal and parameters p.15o_stds,
-   p.d15o_m_true, p.d15o_m_vol, p.d15o_m_true:vol and p.d15o_b
-   as well as information on the organic blank p.No_blk_conc and p.No_blk_d15 and nitrate blank (only if type is 1-step!) p.N_blk_amt and p.N_blk_d15
+   as well as information on the organic blank A/V ratio p.oblank_ratio
+   and p.oblank_d15 and p.N_blk_amt and bacterial background area
+   p.bgrd_area and p.bgrd_d15
 }
 \description{
 Calibrate organic d15 values with the given standards
 }
 \note{
-implement single point correction
+should this also record the actual regression parameters?
 }
 

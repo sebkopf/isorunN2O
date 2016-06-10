@@ -4,26 +4,32 @@
 \alias{calibrate_d15}
 \title{Calibrate d15 values with the given standards}
 \usage{
-calibrate_d15(data, d15, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7),
-  ref_gas_d15 = 0, quiet = FALSE)
+calibrate_d15(data, d15, area, standards = c(`USGS-34` = -1.8, `IAEA-NO3` =
+  4.7), infer_ref_gas = TRUE, infer_bgrd = TRUE, quiet = FALSE)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}
 
 \item{d15}{the d15 column}
 
+\item{area}{the area (signal) column}
+
 \item{standards}{a set of isotope standards
 Note: they are matched to the data by "category" (not by name)}
 
-\item{ref_gas_d15}{the reference gas isotopic composition (only used to constrain blank d15)}
+\item{infer_ref_gas}{whether to infer reference gas (N2O) isotopic composition from the regression}
+
+\item{infer_bgrd}{whether to infer bacterial background from the regression}
 }
 \value{
-introduces the column d15.cal and parameters p.15_stds, p.d15_m and p.d15_b as well as p.N_blk_amt and p.N_blk_d15
+introduces the column d15.cal and parameters p.15_stds, p.d15_m and p.d15_b as well as p.bgrd_area and p.bgrd_d15
 }
 \description{
 Calibrate d15 values with the given standards
 }
 \note{
 implement single point correction
+
+consider removing the storage of the regression parameters since they can be inferred from the others
 }
 

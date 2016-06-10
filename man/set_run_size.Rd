@@ -15,7 +15,7 @@ set_run_size(data, amount, quiet = FALSE)
 adds/overwrites the column 'p.run_size'
 }
 \description{
-Not that this is calculated automatically when using calculate_concentrations,
+Note that this is calculated automatically when using calculate_concentrations,
 only use this function to set the run size manually or overwrite automatic
 calculations from calculate_concentrations.
 }

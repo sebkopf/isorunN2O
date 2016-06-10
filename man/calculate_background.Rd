@@ -18,11 +18,12 @@ calculate_background(data, area, criteria = name \%in\% c("background",
 (pass in NULL if no update of category is desired)}
 }
 \value{
-introduces the parameter columns p.bgrd
+adds the parameter column p.bgrd
 }
 \description{
-Calculates the background area from the direct measurement of the
-background peak. This blank is also estimated by calibrate_d15().
+Calculates the bacterial background area from the direct measurement of the
+background peak. For setting this parameter manually, please use
+\code{\link{set_background}}.
 }
 \seealso{
 \code{\link{change_category}}
