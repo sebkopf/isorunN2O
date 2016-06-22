@@ -295,7 +295,7 @@ get_calib_coef <- function(key, model, name) {
 #' Calibrate d15 values with the given standards
 #' @param data (can be a grouped_by data set)
 #' @param d15 the d15 column
-#' @param area the area (signal) column
+#' @param area the area (signal) column if want to use this as a calibration parameter (default is just the mean of the standards)
 #' @param standards a set of isotope standards
 #'  Note: they are matched to the data by "category" (not by name)
 #' @param infer_ref_gas whether to infer reference gas (N2O) isotopic composition from the regression
@@ -304,16 +304,15 @@ get_calib_coef <- function(key, model, name) {
 #' @note implement single point correction
 #' @note consider removing the storage of the regression parameters since they can be inferred from the others
 #' @export
-calibrate_d15 <- function(data, d15, area, standards = c("USGS-34" = -1.8, "IAEA-NO3" = 4.7),
+calibrate_d15 <- function(data, d15, area = mean(area[category %in% names(standards)]), standards = c("USGS-34" = -1.8, "IAEA-NO3" = 4.7),
                           infer_ref_gas = TRUE, infer_bgrd = TRUE, quiet = FALSE) {
 
   if (missing(d15)) stop("please specify the column that holds the d15 values to calibrate", call. = FALSE)
-  if (missing(area)) stop("please specify the column that holds the area values", call. = FALSE)
   if (length(standards) == 1) stop("sorry, single point correction is not implemented yet") #FIXME
 
   fields <- list(
-    .d15 = interp(~var, var = substitute(d15)),
-    .A = interp(~var, var = substitute(area))
+    .d15 = interp(~var, var = lazy(d15)),
+    .A = interp(~var, var = lazy(area))
   )
 
   # run calibration
@@ -350,9 +349,9 @@ calibrate_d15_org <- function(
   if (missing(volume)) stop("please specify the column that holds the volume values", call. = FALSE)
 
   fields <- list(
-    .d15 = interp(~var, var = substitute(d15)),
-    .A = interp(~var, var = substitute(area)),
-    .V = interp(~as.numeric(var), var = substitute(volume))
+    .d15 = interp(~var, var = lazy(d15)),
+    .A = interp(~var, var = lazy(area)),
+    .V = interp(~as.numeric(var), var = lazy(volume))
   )
 
   # run calibration
@@ -411,18 +410,21 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
         get_calib_coef("b3", m, c(".V",".AI")),
         get_calib_coef("b4", m, ".AI")
       )
+      # NA sanitized parameters for calibration
+      bs_san <- bs
+      bs_san[is.na(bs_san)] <- 0
 
       # calibration
       if (organic) {
         out <- sdf %>%
         mutate(
           p.d15o_stds = stds.label,
-          d15.ocal = (.d15  - bs$b0 - bs$b3 * .V * .AI - bs$b4 * .AI) / ( 1 + bs$b1 * .V * .AI + bs$b2 * .AI ))
+          d15.ocal = (.d15  - bs_san$b0 - bs_san$b3 * .V * .AI - bs_san$b4 * .AI) / ( 1 + bs_san$b1 * .V * .AI + bs_san$b2 * .AI ))
       } else {
         out <- sdf %>%
         mutate(
           p.d15_stds = stds.label,
-          d15.cal = (.d15  - bs$b0 - bs$b4 * .AI) / ( 1 + bs$b2 * .AI ))
+          d15.cal = (.d15  - bs_san$b0 - bs_san$b4 * .AI) / ( 1 + bs_san$b2 * .AI ))
       }
 
       # parameter reference gas
@@ -448,7 +450,7 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
       if (organic && infer_oblank) {
         out <- out %>%
           mutate(
-            p.oblank_ratio = -bs$b1,
+          p.oblank_ratio = -bs$b1,
             p.oblank_ratio.err = bs$b1.err,
             p.oblank_d15 = -bs$b3/bs$b1,
             p.oblank_d15.err = abs(p.oblank_d15) * sqrt( (bs$b3.err/bs$b3)^2 + (bs$b1.err/bs$b1)^2 )

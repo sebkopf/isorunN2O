@@ -152,7 +152,7 @@ df.cal <- df.O17 %>%
   calculate_background(area) %>%
   calculate_concentrations(area, volume, conc_pattern = "(\\d+)uM", 
                            standards = category %in% c("USGS-34", "IAEA-NO3")) %>% 
-  calibrate_d15(d15.raw, area, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7)) %>%
+  calibrate_d15(d15.raw, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7)) %>%
   calibrate_d18(d18.raw, cell_volume = 1.5, standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61))
 ```
 

@@ -4,15 +4,16 @@
 \alias{calibrate_d15}
 \title{Calibrate d15 values with the given standards}
 \usage{
-calibrate_d15(data, d15, area, standards = c(`USGS-34` = -1.8, `IAEA-NO3` =
-  4.7), infer_ref_gas = TRUE, infer_bgrd = TRUE, quiet = FALSE)
+calibrate_d15(data, d15, area = mean(area[category \%in\% names(standards)]),
+  standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7), infer_ref_gas = TRUE,
+  infer_bgrd = TRUE, quiet = FALSE)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}
 
 \item{d15}{the d15 column}
 
-\item{area}{the area (signal) column}
+\item{area}{the area (signal) column if want to use this as a calibration parameter (default is just the mean of the standards)}
 
 \item{standards}{a set of isotope standards
 Note: they are matched to the data by "category" (not by name)}
