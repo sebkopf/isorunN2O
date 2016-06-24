@@ -2,22 +2,25 @@
 #' @param the data frame, can already have a group_by if so desired
 #' @param ... which data columns to include in data overview
 #' @param cutoff the minimum number of samples per group in order to include the group
+#' @param .dots traditional list of columns to include (for traditional evluation)
 #' @export
-generate_data_table <- function(data, ..., cutoff = 1) {
+generate_data_table <- function(data, ..., cutoff = 1, .dots = c()) {
 
   # safety checks
-  include <- lazyeval::lazy_dots(...)
+  include <- c(lazyeval::lazy_dots(...), .dots)
   if (length(include) == 0) stop("No data columns provided, please select at least 1")
 
   # generate dots for the summarize call (include mean and sd)
   dots <- c(
     list(n = ~n()),
-    lapply(include, function(i)
+    lapply(include, function(i) {
+      variable <- if (is(i, "lazy")) i$expr else as.name(i)
       list(
-        interp(~mean(var, na.rm = T), var = i$expr),
-        interp(~sd(var, na.rm = T), var = i$expr)
+        interp(~mean(var, na.rm = T), var = variable),
+        interp(~sd(var, na.rm = T), var = variable)
         ) %>%
-        setNames(paste0(deparse(i$expr), c(".avg", ".sd")))) %>%
+        setNames(paste0(deparse(variable), c(".avg", ".sd")))
+      }) %>%
       unlist()
   )
 
