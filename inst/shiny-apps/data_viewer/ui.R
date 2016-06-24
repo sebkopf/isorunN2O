@@ -25,7 +25,7 @@ ui <- shinyUI(
 
       # Tabs
       tabsetPanel(
-        id = "data_tabs", selected = "data_folder_tab", position = "above", type = "tabs",
+        id = "data_tabs", position = "above", type = "tabs", selected = "data_overview", # selected = "data_folder_tab",
 
         # data history - NOT currently implemented
         #       tabPanel(

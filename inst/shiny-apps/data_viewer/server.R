@@ -201,6 +201,8 @@ server <- shinyServer(function(input, output, session) {
 
 
   # DATA ==================
+  devmode <- TRUE # FIXME: for testing purposes only
+  devrun <- "testing.RData"
 
   # upload
   observe({
@@ -224,6 +226,7 @@ server <- shinyServer(function(input, output, session) {
   # load data
   is_data_loaded <- reactive(length(get_data_folder()) > 0)
   get_data_folder <- reactive({
+    if (devmode && file.exists(devrun)) return("testing")
     validate(need(input[["data_folder-open"]] > 0, message = FALSE))
     isolate({
       data$files <- list() # reset data files everytime the input folder changes
@@ -233,14 +236,19 @@ server <- shinyServer(function(input, output, session) {
       data$std2 <- NULL
       data$exclude <- NULL
     })
+
     return(isolate(data_folder()))
   })
 
   get_data_files <- reactive({
+
     if ( is_data_loaded() ) {
 
-      #load("150306_test.RDATA") # FIXME for testing only
-      #data$files <- out # FIXME for testing only
+      # testing
+      if (devmode && file.exists(devrun)) {
+        load(devrun) # FIXME for testing only
+        return(testing)
+      }
 
       if (input$data_refresh > 0 && isolate(length(data$files)) > 0)
         message("INFO: Checking for newly added files in folder ", basename(get_data_folder()))
@@ -259,6 +267,13 @@ server <- shinyServer(function(input, output, session) {
         }
       })
     }
+
+    # testing
+    if (devmode && !file.exists(devrun)) {
+      testing <- data$files
+      save(testing, file = devrun)
+    }
+
     return(data$files)
   })
 
@@ -278,7 +293,7 @@ server <- shinyServer(function(input, output, session) {
   output$rt_selector_widget <- renderUI({
     if (is_data_loaded()) {
       max_rt <- ceiling(max(get_data_files()[[1]]$get_mass_data()$time)/10)*10
-      value <- isolate(data$n2o_rt %||% get_settings()$n2o_rt)
+      value <- isolate(data$n2o_rt %||% c(get_settings()$n2o_rt_start, get_settings()$n2o_rt_end))
       sliderInput("n2o_rt", "Retention time of N2O peaks",
                   min = 0, max = max_rt, step = 1, value = value, post = " s")
     }
