@@ -336,13 +336,13 @@ server <- shinyServer(function(input, output, session) {
 
         # generate UI
         list(
-          selectInput("n2o_select", "Lab reference standard",
+          selectInput("n2o_select", sprintf("Lab reference standard - default: %s*", get_settings()$lab_ref),
                       options, multiple=TRUE, selectize=FALSE, size = 3, selected = n2o),
-          selectInput("std1_select", "Isotope standard #1",
+          selectInput("std1_select", sprintf("Isotope standard #1 - default: %s*", get_settings()$std1),
                       options, multiple=TRUE, selectize=FALSE, size = 3, selected = std1),
-          selectInput("std2_select", "Isotope standard #2",
+          selectInput("std2_select", sprintf("Isotope standard #2 - default: %s*", get_settings()$std2),
                       options, multiple=TRUE, selectize=FALSE, size = 3, selected = std2),
-          selectInput("exclude_select", "Exclude from analysis",
+          selectInput("exclude_select", sprintf("Exclude from analysis - default: %s", get_settings()$exclude),
                       files, selected = exclude, multiple=TRUE, selectize=FALSE, size = 5)
         )
       })
