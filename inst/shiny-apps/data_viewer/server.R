@@ -2,6 +2,7 @@ library(shiny)
 library(isorunN2O)
 library(ggplot2)
 library(plotly)
+library(DT)
 
 # make sure base directory is set
 if (!exists(".base_dir", env = .GlobalEnv))
@@ -529,5 +530,87 @@ server <- shinyServer(function(input, output, session) {
       paste(collapse = "<br/>") %>%
       HTML()
   })
+
+  # Rmarkdown report =====
+
+  output$data_report_download <- downloadHandler(
+    filename = function() {paste0(basename(get_data_folder()), "_report.Rmd")},
+    content = function(filename) {
+      # read template file
+      template_file <- system.file("shiny-apps", "data_viewer", "template.Rmd", package = "isorunN2O")
+      template <- readChar(template_file, file.info(template_file)$size)
+
+      message("Generating Rmarkdown report file.")
+
+      # create report file
+      report <- template %>%
+        sprintf(
+          basename(get_data_folder()), get_data_folder(), # folder twice
+          input$n2o_rt[1], input$n2o_rt[2], # retention time
+          (get_data_table() %>% filter(file %in% input$exclude_select))$run_number %>%
+            unique() %>% paste(collapse = ", "), # excluded run numbers
+          if (input$data_drift_correction != "none") "TRUE" else "FALSE", # whether to drift correct
+          if (input$data_drift_correction == "loess") "loess" else "lm", # drift method
+          paste(as.numeric(input$data_drift_loess)), # drift span
+          paste0("\"", c(input$n2o_select, input$std1_select, input$std2_select), "\"") %>%
+            paste(collapse = ", "), # what to drift correct with
+          paste0("\"", input$n2o_select, "\"") %>% paste(collapse = ", "), # lab reference
+          paste0("\"", input$std1_select, "\"") %>% paste(collapse = ", "), # standard1
+          paste0("\"", input$std2_select, "\"") %>% paste(collapse = ", ") # standard2
+        )
+
+      # store report in reports folder
+      if (!file.exists(file.path(data_dir, "reports")))
+        dir.create(file.path(data_dir, "reports"))
+      report_file <- file.path(data_dir, "reports", sprintf("%s_report.Rmd", basename(get_data_folder())))
+      con <- file(report_file)
+      writeLines(report, con)
+      close(con)
+      message("Rmarkdown file saved on server.")
+
+      # render report
+      tryCatch({
+        message("Rendering rmarkdown on server.")
+        rmarkdown::render(report_file)
+      },
+      error = function(e) message("ERROR while rendering Rmarkdown: ", e$message))
+
+      # store report in temporary file for download
+      message("Saving rmarkdown to download file.")
+      con <- file(filename)
+      writeLines(report, con)
+      close(con)
+    })
+
+  get_report_files <- reactive({
+    input$refresh_reports
+    files <- list.files(file.path(data_dir, "reports"), pattern = "\\.html")
+    data_frame(Reports = files) %>% arrange(Reports)
+  })
+
+  # reports list
+  output$reports_table <- DT::renderDataTable({
+    datatable(get_report_files(), rownames = FALSE, selection = "single")
+  }, server = FALSE)
+
+  output$report_view <- renderUI({
+    index <- input$reports_table_rows_selected
+    if (length(index) > 0) {
+      report_file <- file.path(data_dir, "reports", get_report_files()$Reports[index])
+      HTML(readChar(report_file, file.info(report_file)$size))
+    } else {
+      HTML("")
+    }
+  })
+
+  output$report_download <- downloadHandler(
+    filename = function() {paste0(get_report_files()$Reports[input$reports_table_rows_selected])},
+    content = function(filename) {
+      report_file <- file.path(data_dir, "reports", get_report_files()$Reports[input$reports_table_rows_selected])
+      con <- file(filename)
+      writeLines(readChar(report_file, file.info(report_file)$size), con)
+      close(con)
+    })
+
 
 })

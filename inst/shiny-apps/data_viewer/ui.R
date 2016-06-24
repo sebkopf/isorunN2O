@@ -1,5 +1,6 @@
 library(shiny)
 library(shinyBS)
+library(DT)
 library(isorunN2O)
 source("folder_browser.R")
 source("variables.R")
@@ -18,7 +19,7 @@ ui <- shinyUI(
 
       # Tabs
       tabsetPanel(
-        id = "data_tabs", position = "above", type = "tabs", selected = "data_folder_tab", # selected = "data_overview"
+        id = "data_tabs", position = "above", type = "tabs", selected = "data_folder_tab", #selected = "reports_tab", # selected = "data_overview"
 
         # data history - NOT currently implemented
         #       tabPanel(
@@ -72,12 +73,12 @@ ui <- shinyUI(
 
             mainPanel(
               bsCollapsePanel("Categorization", htmlOutput("category_info"), value = "info", style = "info"),
-
-
               tags$div(class = "pull-right",
-                       downloadButton("summary_csv_download", "Download Summary", icon("save"))),
+                       downloadButton("data_report_download", "Report", icon("save"))),
               tags$div(class = "pull-right",
-                       downloadButton("data_csv_download", "Download Data", icon("save"))),
+                       downloadButton("summary_csv_download", "Summary", icon("save"))),
+              tags$div(class = "pull-right",
+                       downloadButton("data_csv_download", "Data", icon("save"))),
               tabsetPanel(
                 tabPanel("Static Plot",
                          downloadButton("data_overview_download", "Download Plot", icon("plot")),
@@ -87,6 +88,20 @@ ui <- shinyUI(
                 tabPanel("Summary Table", value = "summary", dataTableOutput("data_summary_table"))
               )
             )
+          )
+        ),
+
+        # Reports
+        tabPanel(
+          value = "reports_tab", "Reports",
+          sidebarLayout(
+            sidebarPanel(
+              tags$div(class = "pull-right", actionButton("refresh_reports", "Refresh")),
+              DT::dataTableOutput("reports_table")),
+            mainPanel(
+              tags$div(class = "pull-right",
+                       downloadButton("report_download", "Download", icon("save"))),
+              htmlOutput("report_view"))
           )
         )
 

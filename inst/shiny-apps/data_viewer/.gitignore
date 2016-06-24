@@ -1,6 +1,5 @@
 *.RDATA
 *.RData
 *.html
-*.Rmd
 *.pdf
 settings.csv
