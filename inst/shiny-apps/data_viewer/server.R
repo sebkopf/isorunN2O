@@ -11,6 +11,7 @@ if (!exists(".base_dir", env = .GlobalEnv))
 source("utils.R")
 source("linearity.R")
 source("folder_browser.R")
+source("variables.R")
 
 # SERVER =====
 server <- shinyServer(function(input, output, session) {
@@ -307,6 +308,14 @@ server <- shinyServer(function(input, output, session) {
       parse_file_names()
   )
 
+  get_data_table_n2o <- reactive({
+    dt <- get_data_table() %>%
+      select_N2O_peak(input$n2o_rt)
+    if (nrow(dt) == 0)
+      stop("No peaks found at this retention time. Please check where the N2O peaks are.")
+    return(dt)
+  })
+
   # Group Selection widgets
   output$group_selector_widgets <- renderUI({
     if (is_data_loaded()) {
@@ -363,14 +372,8 @@ server <- shinyServer(function(input, output, session) {
 
       isolate({
 
-        # N2O peak selection
-        dt <- get_data_table() %>%
-            select_N2O_peak(input$n2o_rt)
-        if (nrow(dt) == 0)
-          stop("No peaks found at this retention time. Please check where the N2O peaks are.")
-
         # determine grouping (for panels)
-        dt <- dt %>%
+        dt <- get_data_table_n2o() %>%
           mutate(
             group =
               ifelse(category %in% data$n2o, "Lab ref",
@@ -465,11 +468,39 @@ server <- shinyServer(function(input, output, session) {
         theme(text = element_blank())
     } else {
       get_overview_data() %>%
-        mutate(bla = as.character(group)) %>%
+        mutate(grp = as.character(group)) %>%
         evaluate_drift(d45, d46, correct = TRUE, plot = TRUE, span = as.numeric(input$data_drift_loess),
-                       correct_with = bla %in% c("Lab ref", "Standard 1", "Standard 2"),
+                       correct_with = grp %in% c("Lab ref", "Standard 1", "Standard 2"),
                        method = if (input$data_drift_correction == "loess") "loess" else "lm")
     }
   })
+
+  # data overview table ======
+  get_data_summary <- reactive({
+    dt <- get_overview_data()
+    if (nrow(dt) == 0) return(dt)
+    dt %>%
+      group_by(category, name) %>%
+      generate_data_table(cutoff = 0, .dots = unname(variables)) %>%
+      ungroup() %>%
+      arrange(desc(n), name)
+  })
+
+  # render table only for selected variable
+  output$data_summary_table <- renderDataTable({
+    dt <- get_data_summary()
+    if (nrow(dt) == 0) return(dt)
+    message("names: ", names(dt))
+    dt %>%
+      select_(.dots = c("category", "name", "n",
+                        input$data_type_selector %>% paste0(c(".avg", ".sd"))))
+  })
+
+  output$summary_csv_download <- downloadHandler(
+    filename = function() {paste0(basename(get_data_folder()), "_summary.csv")},
+    content = function(file) {
+      write.csv(
+        get_data_summary(), file = file, row.names = FALSE)
+    })
 
 })

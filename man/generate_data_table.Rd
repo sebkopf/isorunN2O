@@ -4,12 +4,14 @@
 \alias{generate_data_table}
 \title{Generate an overview table with the data}
 \usage{
-generate_data_table(data, ..., cutoff = 1)
+generate_data_table(data, ..., cutoff = 1, .dots = c())
 }
 \arguments{
 \item{...}{which data columns to include in data overview}
 
 \item{cutoff}{the minimum number of samples per group in order to include the group}
+
+\item{.dots}{traditional list of columns to include (for traditional evluation)}
 
 \item{the}{data frame, can already have a group_by if so desired}
 }

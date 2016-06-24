@@ -46,4 +46,5 @@ Collate:
     'package.R'
     'reporting.R'
     'utils.R'
+    'variables.R'
 RoxygenNote: 5.0.1

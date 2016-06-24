@@ -1,15 +1,7 @@
 library(shiny)
 library(isorunN2O)
 source("folder_browser.R")
-
-variables <-
-  c("d15N (uncalibrated)" = "d15.raw",
-    "d18O (uncalibrated)" = "d18.raw",
-    "Area All" = "area",
-    "d45 (raw)" = "d45",
-    "d45 (drift-corrected)" = "d45.drift",
-    "d46 (raw)" = "d46",
-    "d46 (drift-corrected)" = "d46.drift")
+source("variables.R")
 
 # Define UI that plots the isotope label enrichment
 ui <- shinyUI(
@@ -72,13 +64,17 @@ ui <- shinyUI(
               htmlOutput("group_selector_widgets")
             ),
             mainPanel(
-              tabsetPanel(
+              tags$div(class = "pull-right",
+                       downloadButton("summary_csv_download", "Download Summary", icon("save"))),
+              tags$div(class = "pull-right",
+                       downloadButton("data_csv_download", "Download Data", icon("save"))),
+              tabsetPanel(selected = "summary",
                 tabPanel("Static Plot",
                          downloadButton("data_overview_download", "Download Plot", icon("plot")),
-                         downloadButton("data_csv_download", "Download Grouped Data", icon("save")),
                          plotOutput("data_overview_plot", height="600px", width = "900px")),
                 tabPanel("Interactive Plot", plotlyOutput("data_overview_iplot", height="600px", width = "900px")),
-                tabPanel("Drift Correction Plot", plotOutput("data_drift_correct_plot", height="600px", width = "700px"))
+                tabPanel("Drift Correction Plot", value = "drift", plotOutput("data_drift_correct_plot", height="600px", width = "700px")),
+                tabPanel("Summary Table", value = "summary", dataTableOutput("data_summary_table"))
               )
             )
           )
