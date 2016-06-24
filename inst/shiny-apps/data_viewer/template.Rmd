@@ -12,7 +12,7 @@ library(isorunN2O)
 
 Load data, assign categories, evaluate drift, correct for O17.
 
-```{r processing_step1, fig.width = 9, fig.height = 7}
+```{r processing_step1, fig.width = 9, fig.height = 7, warning=FALSE}
 data.raw <- 
   # change to local folder
   load_run_folder("%s", quiet = T) %%>%%
