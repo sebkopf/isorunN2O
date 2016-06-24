@@ -71,15 +71,18 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
       left_join(ggplot2:::predictdf(m46, run_numbers, se = F) %>%
                   rename(.d46.adjust = y, run_number = x), by = "run_number")  %>%
       mutate(p.drift = paste0(reg_notes, ": ", corr_cats),
-             d45.drift = .d45 - .d45.adjust, d46.drift = .d46 - .d46.adjust) %>%
+             d45.drift = .d45 - .d45.adjust,
+             d46.drift = .d46 - .d46.adjust) %>%
       select(-.d45.adjust, -.d46.adjust)
 
     # fitting overview plot
     if (plot) {
 
       # plotting data
+      mdf$d45.drift <- NULL # just in case already defined
+      mdf$d46.drift <- NULL # just in case already defined
       mdf <-
-        left_join(mdf, select(data.drift, run_number, d45.drift, d46.drift),
+        left_join(mdf, data.drift[c("run_number", "d45.drift", "d46.drift")],
                   by = "run_number") %>%
         group_by(.group) %>%
         mutate(
@@ -128,6 +131,7 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
 
     # info messages
     if (!quiet & correct) {
+
       grp_sum <- filter(out, .included) %>% group_by(.group) %>%
         summarize(d45.sd = sd(.d45), d46.sd = sd(.d46), d45.drift.sd = sd(d45.drift), d46.drift.sd = sd(d46.drift)) %>%
         mutate(before = paste0(round(d45.sd, 2), "/", round(d46.sd, 2), " (", .group, ")"),
