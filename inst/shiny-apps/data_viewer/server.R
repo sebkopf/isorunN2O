@@ -309,6 +309,7 @@ server <- shinyServer(function(input, output, session) {
   )
 
   get_data_table_n2o <- reactive({
+    validate(need(length(input[["n2o_rt"]]) > 0, message = FALSE))
     dt <- get_data_table() %>%
       select_N2O_peak(input$n2o_rt)
     if (nrow(dt) == 0)
@@ -475,7 +476,7 @@ server <- shinyServer(function(input, output, session) {
     }
   })
 
-  # data overview table ======
+  # summary table ======
   get_data_summary <- reactive({
     dt <- get_overview_data()
     if (nrow(dt) == 0) return(dt)
@@ -490,7 +491,6 @@ server <- shinyServer(function(input, output, session) {
   output$data_summary_table <- renderDataTable({
     dt <- get_data_summary()
     if (nrow(dt) == 0) return(dt)
-    message("names: ", names(dt))
     dt %>%
       select_(.dots = c("category", "name", "n",
                         input$data_type_selector %>% paste0(c(".avg", ".sd"))))
@@ -502,5 +502,32 @@ server <- shinyServer(function(input, output, session) {
       write.csv(
         get_data_summary(), file = file, row.names = FALSE)
     })
+
+  # category info output ======
+
+  output$category_info <- renderUI({
+
+    if (nrow(get_data_table()) == 0) return (HTML(""))
+
+    excluded <- get_data_table() %>%
+      filter(file %in% input$exclude_select) %>%
+      mutate(label = paste0(name, " (#", run_number, ")"))
+
+    has_n2o <- get_data_table_n2o()$file
+    no_n2o <- get_data_table() %>%
+      select(file, name, run_number) %>% unique() %>%
+      filter(!file %in% has_n2o) %>%
+      mutate(label = paste0(name, " (#", run_number, ")"))
+
+    c(
+      sprintf("<b>Lab reference standard:</b> %s", input$n2o_select %>% paste(collapse = ", ")),
+      sprintf("<b>Isotope standard #1:</b> %s", input$std1_select %>% paste(collapse = ", ")),
+      sprintf("<b>Isotope standard #2:</b> %s", input$std2_select %>% paste(collapse = ", ")),
+      sprintf("<b>Excluded:</b> %s", excluded$label %>% unique() %>% paste(collapse = ", ")),
+      sprintf("<b>No N2O peak found:</b> %s", no_n2o$label %>% unique() %>% paste(collapse = ", "))
+      ) %>%
+      paste(collapse = "<br/>") %>%
+      HTML()
+  })
 
 })

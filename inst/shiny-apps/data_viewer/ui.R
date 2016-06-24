@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyBS)
 library(isorunN2O)
 source("folder_browser.R")
 source("variables.R")
@@ -50,6 +51,9 @@ ui <- shinyUI(
         tabPanel(
           value = "data_overview", "Overview",
           sidebarLayout(
+
+            # OVERVIEW OPTIONS PANEL
+
             sidebarPanel(
               fluidRow(
                 column(width = 8, h4(textOutput("loaded_data_folder"))),
@@ -63,7 +67,13 @@ ui <- shinyUI(
                 ),
               htmlOutput("group_selector_widgets")
             ),
+
+            # MAIN DISPLAY PANEL
+
             mainPanel(
+              bsCollapsePanel("Categorization", htmlOutput("category_info"), value = "info", style = "info"),
+
+
               tags$div(class = "pull-right",
                        downloadButton("summary_csv_download", "Download Summary", icon("save"))),
               tags$div(class = "pull-right",
