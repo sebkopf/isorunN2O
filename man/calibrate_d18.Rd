@@ -44,5 +44,10 @@ Calibrate organic d15 values with the given standards
 }
 \note{
 implement single point correction
+Calibrate d18 data with the given standards.
+
+Uses a multivariate linear regression that takes the effective concentration
+in the sample vials into consideration (as well as covariance between standards
+and effective concentration).
 }
 

@@ -529,7 +529,6 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
 #'    p.d15o_m_true, p.d15o_m_vol, p.d15o_m_true:vol and p.d15o_b
 #'    as well as information on the organic blank p.No_blk_conc and p.No_blk_d15 and nitrate blank (only if type is 1-step!) p.N_blk_amt and p.N_blk_d15
 #' @note implement single point correction
-#' @export
 # calibrate_d15_org_old <- function(data, d15, volume = volume, standards = c("USGS-40" = -4.50, "USGS-41" = 47.60),
 #                               infer_NO3_blank = FALSE, ref_gas_d15 = 0, quiet = FALSE) {
 #
