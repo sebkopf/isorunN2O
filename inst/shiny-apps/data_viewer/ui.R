@@ -18,7 +18,7 @@ ui <- shinyUI(
 
       # Tabs
       tabsetPanel(
-        id = "data_tabs", position = "above", type = "tabs", selected = "data_overview", # selected = "data_folder_tab",
+        id = "data_tabs", position = "above", type = "tabs", selected = "data_folder_tab", # selected = "data_overview"
 
         # data history - NOT currently implemented
         #       tabPanel(
@@ -78,7 +78,7 @@ ui <- shinyUI(
                        downloadButton("summary_csv_download", "Download Summary", icon("save"))),
               tags$div(class = "pull-right",
                        downloadButton("data_csv_download", "Download Data", icon("save"))),
-              tabsetPanel(selected = "summary",
+              tabsetPanel(
                 tabPanel("Static Plot",
                          downloadButton("data_overview_download", "Download Plot", icon("plot")),
                          plotOutput("data_overview_plot", height="600px", width = "900px")),

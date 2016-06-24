@@ -202,7 +202,7 @@ server <- shinyServer(function(input, output, session) {
 
 
   # DATA ==================
-  devmode <- TRUE # FIXME: for testing purposes only
+  devmode <- FALSE # FIXME: for testing purposes only
   devrun <- "testing.RData"
 
   # upload
