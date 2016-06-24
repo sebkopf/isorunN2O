@@ -59,9 +59,9 @@ correct_N2O_for_17O <- function (data, d45, d46,
   df <- data %>% mutate_(.dots = fields) %>%
     mutate(
       .d18 = 1000 * calc_d18 (.d45/1000, .d46/1000),
+      p.17Ocor = paste0("scaling=", lambda, "; ref 17R=", ref_17R, ", 18R=", ref_18R, ", 15N=", ref_15R_avg),
       d15.raw = 1000 * calc_d15 (.d18/1000, .d45/1000),
-      d18.raw = .d18,
-      p.17Ocor = paste0("scaling=", lambda, "; ref 17R=", ref_17R, ", 18R=", ref_18R, ", 15N=", ref_15R_avg)
+      d18.raw = .d18
     )
 
   # output

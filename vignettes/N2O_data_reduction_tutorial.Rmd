@@ -113,7 +113,7 @@ df.cat <- df.raw %>%
 
 #### Drift correction
 
-The `evaluate_drift` function provides a number of different strategies for evaluating drift using different correction methods, here we're trying a polynomial fit (`method = "loess"`) and are correcting with the standards as well as N2O. We also want to see a summary plot of the drift using `plot = TRUE` (the default), which will plot the drift polynomials on top of the original data (normalized to average isotope values in each group) and the residuals after applying the correction. For details look at the `?evaluate_drift` help. The drift correction stores the drift corrected values in `d45.cor` and `d46.cor`.
+The `evaluate_drift` function provides a number of different strategies for evaluating drift using different correction methods, here we're trying a polynomial fit (`method = "loess"`) and are correcting with the standards as well as N2O. We also want to see a summary plot of the drift using `plot = TRUE` (the default), which will plot the drift polynomials on top of the original data (normalized to average isotope values in each group) and the residuals after applying the correction. For details look at the `?evaluate_drift` help. The drift correction stores the drift corrected values in `d45.drift` and `d46.drift`.
 
 ```{r drift_correction, fig.width = 9, fig.height = 7}
 df.drift <- df.cat %>% 
@@ -125,7 +125,7 @@ df.drift <- df.cat %>%
 Let's take a quick look how we're doing after drift correction:
 
 ```{r data_overview_after_drift_correction, fig.width = 9, fig.height = 7}
-df.drift %>% plot_overview(d45.cor, panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")))
+df.drift %>% plot_overview(d45.drift, panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")))
 ```
 
 
@@ -139,8 +139,8 @@ We're doing the O17 correction here (instead of before the drift) but it is a ma
 
 ```{r}
 df.O17 <- df.drift %>%
-  correct_N2O_for_17O(d45.cor, d46.cor) %>% 
-  select_columns(-d45, -d45.cor, -d46, -d46.cor) # no longer needd, remove these columns
+  correct_N2O_for_17O(d45.drift, d46.drift) %>% 
+  select_columns(-d45, -d45.drift, -d46, -d46.drift) # no longer needd, remove these columns
 ```
 
 #### Calibration
@@ -207,7 +207,7 @@ At any point during the process, if you like to export data as excel, this is ea
 
 ```{r}
 df.cal %>% 
-  select(-starts_with("p."), -ends_with(".raw"), -ends_with(".cor"), d15 = d15.cal, d18 = d18.cal) %>%
+  select(-starts_with("p."), -ends_with(".raw"), -ends_with(".drift"), d15 = d15.cal, d18 = d18.cal) %>%
   arrange(category, name) %>%
   openxlsx::write.xlsx(file = "export.xlsx")
 ```

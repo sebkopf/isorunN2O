@@ -398,7 +398,7 @@ server <- shinyServer(function(input, output, session) {
                          span = as.numeric(input$data_drift_loess),
                          correct_with = group %in% c("Lab ref", "Standard 1", "Standard 2"),
                          method = if (input$data_drift_correction == "loess") "loess" else "lm") %>%
-          correct_N2O_for_17O(d45.cor, d46.cor)
+          correct_N2O_for_17O(d45.drift, d46.drift)
 
         return(dt)
       })

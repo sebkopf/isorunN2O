@@ -7,9 +7,9 @@ variables <-
     "d18O (uncalibrated)" = "d18.raw",
     "Area All" = "area",
     "d45 (raw)" = "d45",
-    "d45 (drift-corrected)" = "d45.cor",
+    "d45 (drift-corrected)" = "d45.drift",
     "d46 (raw)" = "d46",
-    "d46 (drift-corrected)" = "d46.cor")
+    "d46 (drift-corrected)" = "d46.drift")
 
 # Define UI that plots the isotope label enrichment
 ui <- shinyUI(
