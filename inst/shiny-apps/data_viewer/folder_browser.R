@@ -98,7 +98,7 @@ folderSelector <- function(input, output, session, root,
 
     # safety checks
     stopifnot(file.exists(path))
-    stopifnot(R.utils::isAbsolutePath(path))
+    if (!R.utils::isAbsolutePath(path)) stop("not an absolute path: ", path)
     return(path)
   })
 

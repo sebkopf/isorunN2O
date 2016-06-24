@@ -41,15 +41,13 @@ ui <- shinyUI(
           br(),
           fluidRow(
             column(width = 3,
-
+                   fileInput('upload', 'Upload additional data (zip archives)', accept=c('.zip')),
                    modalFolderSelectorInput("data_folder", size = "large",
                                             folders_label = "Folders",
                                             files_label = "MAT files",
                                             dialog_open_label = "Select data folder",
                                             dialog_close_label = "Open",
                                             dialog_close_id = "open"),
-
-                   br(), br(),
                    htmlOutput("data_loaded_masses")),
             column(width = 9, htmlOutput("data_loaded_files"))
           ),

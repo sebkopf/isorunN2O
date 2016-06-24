@@ -5,7 +5,7 @@ library(plotly)
 
 # make sure base directory is set
 if (!exists(".base_dir", env = .GlobalEnv))
-  .GlobalEnv$.base_dir <- "."
+  .GlobalEnv$.base_dir <- getwd()
 
 # functions
 source("utils.R")
@@ -202,6 +202,12 @@ server <- shinyServer(function(input, output, session) {
 
   # DATA ==================
 
+  # upload
+  observe({
+    if (is.null(input$upload)) return()
+    input$upload$datapath %>% unzip(exdir = data_dir)
+  })
+
   data_folder <- callModule(folderSelector, "data_folder", root = data_dir,
                             folders_sort_desc = TRUE,
                             files_pattern = "\\.dxf", size = 10)
@@ -258,7 +264,7 @@ server <- shinyServer(function(input, output, session) {
 
   # show data traces
   output$data_loaded_masses <- renderUI(make_trace_selector("data_selected_mass", get_data_files()))
-  output$data_loaded_files <- renderUI(make_file_selector("data_selected_file", get_data_files()))
+  output$data_loaded_files <- renderUI(make_file_selector("data_selected_file", get_data_files(), size = 11))
   make_data_traces_plot <- reactive(
     if (is_data_loaded()) {
       withProgress(message = 'Rendering plot', detail = "for raw mass traces...", value = 0.5,
