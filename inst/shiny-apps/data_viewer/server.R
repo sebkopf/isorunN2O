@@ -558,6 +558,9 @@ server <- shinyServer(function(input, output, session) {
     content = function(filename) {
       withProgress(message = "Generating report...", value = 0, {
 
+        if (!file.exists(file.path(data_dir, "reports")))
+          dir.create(file.path(data_dir, "reports"))
+
         # message
         incProgress(0.1, detail = "creating excel data export")
         data_file <- file.path(data_dir, "reports",
@@ -592,8 +595,6 @@ server <- shinyServer(function(input, output, session) {
 
         # store report in reports folder
         incProgress(0.1, detail = "storing Rmd report")
-        if (!file.exists(file.path(data_dir, "reports")))
-          dir.create(file.path(data_dir, "reports"))
         report_file <- file.path(data_dir, "reports", sprintf("%s_report.Rmd", basename(get_data_folder())))
         con <- file(report_file)
         writeLines(report, con)
