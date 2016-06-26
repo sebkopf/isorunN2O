@@ -3,6 +3,7 @@ library(isorunN2O)
 library(ggplot2)
 library(plotly)
 library(DT)
+library(openxlsx)
 
 # make sure base directory is set
 if (!exists(".base_dir", env = .GlobalEnv))
@@ -448,13 +449,38 @@ server <- shinyServer(function(input, output, session) {
       ggsave(file = file, plot = make_overview_plot(), width = 12, height = 8, device = device)
     })
 
-  output$data_csv_download <- downloadHandler(
-    filename = function() {paste0(basename(get_data_folder()), "_data.csv")},
+  # data export
+  write_export_file <- function(filename, data, summary) {
+
+    incProgress(0.1, detail = "creating workbook")
+
+    # generate excel export
+    wb <- createWorkbook()
+
+    # data sheet
+    incProgress(0.1, detail = "creating data tab")
+    addWorksheet(wb, sheetName = "data")
+    writeData(wb, sheet = "data",
+              data %>%
+                dplyr::select(-color) %>%
+                dplyr::arrange(group, name, run_number))
+
+    # summary sheet
+    incProgress(0.1, detail = "creating summary tab")
+    addWorksheet(wb, sheetName = "summary")
+    writeData(wb, sheet = "summary", summary)
+
+    # save
+    incProgress(0.1, detail = "saving file")
+    saveWorkbook(wb, filename, overwrite = TRUE)
+  }
+
+  output$data_export_download <- downloadHandler(
+    filename = function() {paste0(basename(get_data_folder()), "_data.xlsx")},
     content = function(file) {
-      write.csv(
-        get_overview_data() %>% dplyr::select(-color) %>% dplyr::arrange(group, name, run_number),
-        file = file, row.names = FALSE)
-    })
+      withProgress(message = "Generating excel file", value = 0,
+                   write_export_file(file, get_overview_data(), get_data_summary()))
+      })
 
   # interactive plot =========
 
@@ -470,7 +496,8 @@ server <- shinyServer(function(input, output, session) {
         theme(text = element_blank())
     } else {
       get_overview_data() %>%
-        mutate(grp = as.character(group)) %>%
+        mutate(group = as.character(group)) %>%
+        rename(grp = group)
         evaluate_drift(d45, d46, correct = TRUE, plot = TRUE, span = as.numeric(input$data_drift_loess),
                        correct_with = grp %in% c("Lab ref", "Standard 1", "Standard 2"),
                        method = if (input$data_drift_correction == "loess") "loess" else "lm")
@@ -496,13 +523,6 @@ server <- shinyServer(function(input, output, session) {
       select_(.dots = c("category", "name", "n",
                         input$data_type_selector %>% paste0(c(".avg", ".sd"))))
   })
-
-  output$summary_csv_download <- downloadHandler(
-    filename = function() {paste0(basename(get_data_folder()), "_summary.csv")},
-    content = function(file) {
-      write.csv(
-        get_data_summary(), file = file, row.names = FALSE)
-    })
 
   # category info output ======
 
@@ -536,50 +556,65 @@ server <- shinyServer(function(input, output, session) {
   output$data_report_download <- downloadHandler(
     filename = function() {paste0(basename(get_data_folder()), "_report.Rmd")},
     content = function(filename) {
-      # read template file
-      template_file <- system.file("shiny-apps", "data_viewer", "template.Rmd", package = "isorunN2O")
-      template <- readChar(template_file, file.info(template_file)$size)
+      withProgress(message = "Generating report...", value = 0, {
 
-      message("Generating Rmarkdown report file.")
+        # message
+        incProgress(0.1, detail = "creating excel data export")
+        data_file <- file.path(data_dir, "reports",
+                               sprintf("%s_data.xlsx", basename(get_data_folder())))
+        write_export_file(data_file, get_overview_data(), get_data_summary())
 
-      # create report file
-      report <- template %>%
-        sprintf(
-          basename(get_data_folder()), get_data_folder(), # folder twice
-          input$n2o_rt[1], input$n2o_rt[2], # retention time
-          (get_data_table() %>% filter(file %in% input$exclude_select))$run_number %>%
-            unique() %>% paste(collapse = ", "), # excluded run numbers
-          if (input$data_drift_correction != "none") "TRUE" else "FALSE", # whether to drift correct
-          if (input$data_drift_correction == "loess") "loess" else "lm", # drift method
-          paste(as.numeric(input$data_drift_loess)), # drift span
-          paste0("\"", c(input$n2o_select, input$std1_select, input$std2_select), "\"") %>%
-            paste(collapse = ", "), # what to drift correct with
-          paste0("\"", input$n2o_select, "\"") %>% paste(collapse = ", "), # lab reference
-          paste0("\"", input$std1_select, "\"") %>% paste(collapse = ", "), # standard1
-          paste0("\"", input$std2_select, "\"") %>% paste(collapse = ", ") # standard2
-        )
+        # read template file
+        incProgress(0.1, detail = "creating Rmd report")
+        template_file <- system.file("shiny-apps", "data_viewer", "template.Rmd", package = "isorunN2O")
+        template <- readChar(template_file, file.info(template_file)$size)
 
-      # store report in reports folder
-      if (!file.exists(file.path(data_dir, "reports")))
-        dir.create(file.path(data_dir, "reports"))
-      report_file <- file.path(data_dir, "reports", sprintf("%s_report.Rmd", basename(get_data_folder())))
-      con <- file(report_file)
-      writeLines(report, con)
-      close(con)
-      message("Rmarkdown file saved on server.")
+        message("Generating Rmarkdown report file.")
 
-      # render report
-      tryCatch({
-        message("Rendering rmarkdown on server.")
-        rmarkdown::render(report_file)
-      },
-      error = function(e) message("ERROR while rendering Rmarkdown: ", e$message))
+        # create report file
+        report <- template %>%
+          sprintf(
+            basename(get_data_folder()),
+            get_data_folder(), # read from dxf
+            input$n2o_rt[1], input$n2o_rt[2], # retention time
+            data_file, # read from excel
+            (get_data_table() %>% filter(file %in% input$exclude_select))$run_number %>%
+              unique() %>% paste(collapse = ", "), # excluded run numbers
+            if (input$data_drift_correction != "none") "TRUE" else "FALSE", # whether to drift correct
+            if (input$data_drift_correction == "loess") "loess" else "lm", # drift method
+            paste(as.numeric(input$data_drift_loess)), # drift span
+            paste0("\"", c(input$n2o_select, input$std1_select, input$std2_select), "\"") %>%
+              paste(collapse = ", "), # what to drift correct with
+            paste0("\"", input$n2o_select, "\"") %>% paste(collapse = ", "), # lab reference
+            paste0("\"", input$std1_select, "\"") %>% paste(collapse = ", "), # standard1
+            paste0("\"", input$std2_select, "\"") %>% paste(collapse = ", ") # standard2
+          )
 
-      # store report in temporary file for download
-      message("Saving rmarkdown to download file.")
-      con <- file(filename)
-      writeLines(report, con)
-      close(con)
+        # store report in reports folder
+        incProgress(0.1, detail = "storing Rmd report")
+        if (!file.exists(file.path(data_dir, "reports")))
+          dir.create(file.path(data_dir, "reports"))
+        report_file <- file.path(data_dir, "reports", sprintf("%s_report.Rmd", basename(get_data_folder())))
+        con <- file(report_file)
+        writeLines(report, con)
+        close(con)
+        message("Rmarkdown file saved on server.")
+
+        # render report
+        incProgress(0.1, detail = "trying to generate HTML report")
+        tryCatch({
+          message("Rendering rmarkdown on server.")
+          rmarkdown::render(report_file)
+        },
+        error = function(e) message("ERROR while rendering Rmarkdown: ", e$message))
+
+        # store report in temporary file for download
+        incProgress(0.1, detail = "preparing Rmd for download")
+        message("Saving rmarkdown to download file.")
+        con <- file(filename)
+        writeLines(report, con)
+        close(con)
+      })
     })
 
   get_report_files <- reactive({

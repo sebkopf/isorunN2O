@@ -76,9 +76,7 @@ ui <- shinyUI(
               tags$div(class = "pull-right",
                        downloadButton("data_report_download", "Report", icon("save"))),
               tags$div(class = "pull-right",
-                       downloadButton("summary_csv_download", "Summary", icon("save"))),
-              tags$div(class = "pull-right",
-                       downloadButton("data_csv_download", "Data", icon("save"))),
+                       downloadButton("data_export_download", "Data", icon("save"))),
               tabsetPanel(
                 tabPanel("Static Plot",
                          downloadButton("data_overview_download", "Download Plot", icon("plot")),

@@ -10,20 +10,28 @@ library(isorunN2O)
 
 ## Processing step #1
 
-Load data, assign categories, evaluate drift, correct for O17.
+Load data (from excel by default, from raw .dxf files is also presented but commented out, can delete if not used), assign categories, evaluate drift, correct for O17.
 
 ```{r processing_step1, fig.width = 9, fig.height = 7, warning=FALSE}
 data.raw <- 
-  # change to local folder
-  load_run_folder("%s", quiet = T) %%>%%
-  # pull out the data summary from the raw isodat file:
-  get_isodat_data_tables() %%>%% 
-  # derive file categories:
-  parse_file_names() %%>%% 
-  # discard the reference peaks:
-  select_N2O_peak( c(%d, %d) ) %%>%% 
-  # focus on the columns we care about:
-  rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`) %%>%%
+  
+  ### approach #1: reading from original dxf files ###
+  # # TODO: change to local folder
+  # load_run_folder("%s", quiet = T) %%>%%
+  # # pull out the data summary from the raw isodat file:
+  # get_isodat_data_tables() %%>%% 
+  # # derive file categories:
+  # parse_file_names() %%>%% 
+  # # discard the reference peaks:
+  # select_N2O_peak( c(%d, %d) ) %%>%% 
+  # # focus on the columns we care about:
+  # rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`) %%>%%
+  
+  ### approach #2: reading from N2O data viewer excel export ### 
+  # TODO: change to local folder 
+  readxl::read_excel("%s", sheet = "data") %%>%%
+  
+  ### regular processing for both approaches ###
   # select which columns to keep:
   select_columns(folder, date, analysis, run_number, category, name, volume, area, d45, d46, quiet = TRUE) %%>%%
   # identify excluded analyses
@@ -79,11 +87,17 @@ data.raw %%>%%
 Calculate concentrations and calibrate against isotopic standards. This is not implmented in the UI, implement this manually if interested in using.
 
 ```{r}
-# data.cal <- data.raw %%>%% 
-#   calculate_background(area) %%>%%
-#   calculate_concentrations(area, volume, conc_pattern = "(\\d+)uM", 
-#                            standards = category %%in%% c("USGS-34", "IAEA-NO3")) %%>%% 
+# data.cal <- data.raw %%>%%
+#   # calculate the background area based on analyses named 'background'
+#   calculate_background(area, criteria = name %%in%% c("background")) %%>%%
+#   # set the background area manually (use this as alternative to calculate_background)
+#   set_background(0.251) %%>%%
+#   # calculate the concentrations based on the standards (here with naming patter XuM)
+#   calculate_concentrations(area, volume, conc_pattern = "(\\d+)uM",
+#                            standards = category %%in%% c("USGS-34", "IAEA-NO3")) %%>%%
+#   # calibrate d15 based on the two provided standards
 #   calibrate_d15(d15.raw, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7)) %%>%%
+#   # calibrate d18 based on the two provided standards
 #   calibrate_d18(d18.raw, cell_volume = 1.5, standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61))
 ```
 
@@ -114,8 +128,8 @@ data.raw %%>%%
   select(-starts_with("p."), -ends_with(".raw"), -ends_with(".drift"), d15 = d15.raw, d18 = d18.raw) %%>%%
   # sorting
   arrange(category, name) %%>%%
-  # export (not run)
-  #openxlsx::write.xlsx(file = "export.xlsx")
+#  # export (not run, uncomment to run)
+#  openxlsx::write.xlsx(file = "export.xlsx") %%>%%
   invisible() # invisible instead
 ```
 
