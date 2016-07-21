@@ -497,7 +497,7 @@ server <- shinyServer(function(input, output, session) {
     } else {
       get_overview_data() %>%
         mutate(group = as.character(group)) %>%
-        rename(grp = group)
+        rename(grp = group) %>%
         evaluate_drift(d45, d46, correct = TRUE, plot = TRUE, span = as.numeric(input$data_drift_loess),
                        correct_with = grp %in% c("Lab ref", "Standard 1", "Standard 2"),
                        method = if (input$data_drift_correction == "loess") "loess" else "lm")
