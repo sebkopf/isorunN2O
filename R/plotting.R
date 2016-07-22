@@ -143,7 +143,7 @@ make_interactive <- function(p = ggplot2:::last_plot(), tooltip = tooltip_defaul
   p <- p + theme + plus
 
   # NOTE: this is to avoid issues with plotly (make sure the mappings have class uneval)
-  if (!is(p$mappig, "uneval"))
+  if (!is(p$mapping, "uneval"))
     class(p$mapping) <- "uneval"
 
   suppressWarnings(p %>% plotly::ggplotly(tooltip = tooltip))
