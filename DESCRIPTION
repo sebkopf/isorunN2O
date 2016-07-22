@@ -1,7 +1,7 @@
 Package: isorunN2O
 Type: Package
 Title: Process IRMS runs of N2O analyses.
-Version: 0.2.2
+Version: 0.2.3
 Date: 2016-01-06
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <seb.kopf@gmail.com>
@@ -17,6 +17,8 @@ Depends:
     plotly (>= 3.3.1),
     ggplot2 (>= 2.1.0)
 Imports:
+    methods,
+    stats,
     R.utils,
     plyr,
     lazyeval,
