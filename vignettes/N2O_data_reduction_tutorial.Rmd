@@ -27,7 +27,7 @@ The package includes a sample data set (`test_run`) to work with for testing and
 
 ```{r}
 data_folder <- system.file("extdata", package = "isorunN2O") 
-iso_files <- load_run_folder(file.path(data_folder, "test_run"), cache = data_folder)
+iso_files <- load_run_folder(file.path(data_folder, "test_run"))
 ```
 
 #### Raw data
