@@ -4,6 +4,7 @@ library(ggplot2)
 library(plotly)
 library(DT)
 library(openxlsx)
+library(shinyAce)
 
 # make sure base directory is set
 if (!exists(".base_dir", env = .GlobalEnv))
@@ -252,11 +253,9 @@ server <- shinyServer(function(input, output, session) {
       # load all files that are not loaded yet
       isolate({
         files <- list.files(get_data_folder(), pattern = "\\.dxf$", full.names = TRUE)
-        cache_file <- file.path(get_data_folder(), "cache.RData")
+        cache_file <- isorunN2O:::default_cache_file(get_data_folder(), basename(get_data_folder()))
         if (file.exists(cache_file)) {
-          message("Loading data from cached file ", cache_file)
-          load(file = cache_file)
-          data$files <- cache
+          data$files <- isorunN2O:::load_cache(cache_file)
         }
         not_loaded_yet <- setdiff(basename(files), names(data$files)) # check which files have not been loaded yet
 
@@ -269,8 +268,7 @@ server <- shinyServer(function(input, output, session) {
 
           # store updated cache
           message("Updating cached data file ", cache_file)
-          cache <- data$files
-          save(cache, file = cache_file)
+          save_cache(data$files, cache_file)
         }
       })
     }
@@ -334,7 +332,7 @@ server <- shinyServer(function(input, output, session) {
 
         options <- setNames(categories$category, categories$label)
         files <- get_data_table()[c("file", "run_number")] %>% unique()
-        files <- setNames(files$file, paste0(files$file, " (#", files$run_number, ")"))
+        files <- setNames(files$file, paste0("#", files$run_number, ": ", files$file))
 
         n2o <- isolate(data$n2o %||% grep(get_settings()$lab_ref, options, value = T))
         std1 <- isolate(data$std1 %||% grep(get_settings()$std1, options, value = T))
@@ -530,13 +528,13 @@ server <- shinyServer(function(input, output, session) {
 
     excluded <- get_data_table() %>%
       filter(file %in% input$exclude_select) %>%
-      mutate(label = paste0(name, " (#", run_number, ")"))
+      mutate(label = paste0("#", run_number, ": ", name))
 
     has_n2o <- get_data_table_n2o()$file
     no_n2o <- get_data_table() %>%
       select(file, name, run_number) %>% unique() %>%
       filter(!file %in% has_n2o) %>%
-      mutate(label = paste0(name, " (#", run_number, ")"))
+      mutate(label = paste0("#", run_number, ": ", name))
 
     c(
       sprintf("<b>Lab reference standard:</b> %s", input$n2o_select %>% paste(collapse = ", ")),
@@ -550,69 +548,123 @@ server <- shinyServer(function(input, output, session) {
   })
 
   # Rmarkdown report =====
+  if (!file.exists(file.path(data_dir, "reports"))) dir.create(file.path(data_dir, "reports"))
+  template_file <- system.file("shiny-apps", "data_viewer", "template.Rmd", package = "isorunN2O")
+  template <- readChar(template_file, file.info(template_file)$size)
 
-  output$data_report_download <- downloadHandler(
+  get_code_preview <- reactive({
+    if ( !is_data_loaded() ) return("")
+
+    # data files loading
+    if (input$code_load_source == "dxf") { # dxf
+      load_code <- paste(sep = "\n  ",
+         "# reading from original dxf files",
+         "load_run_folder(\"%s\", quiet = T) %%>%% # TODO: change to local folder",
+         "# pull out the data summary from the raw isodat file:",
+         "get_isodat_data_tables() %%>%%",
+         "# derive file categories:",
+         "parse_file_names() %%>%%",
+         "# discard the reference peaks:",
+         "select_N2O_peak( c(%d, %d) ) %%>%%",
+         "# focus on the columns we care about:",
+         "rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`) %%>%%"
+      ) %>% sprintf(
+        basename(get_data_folder()), # folder name
+        input$n2o_rt[1], input$n2o_rt[2] # retention time
+      )
+    } else { # excel
+      load_code <- paste(sep = "\n  ",
+        "# reading from N2O data viewer excel export",
+        "readxl::read_excel(\"%s_data.xlsx\", sheet = \"data\") %%>%% # TODO: change to local folder"
+      ) %>% sprintf(basename(get_data_folder()))
+    }
+
+    # additional information
+    template %>%
+      sprintf(
+        basename(get_data_folder()),
+        load_code,
+        (get_data_table() %>% filter(file %in% input$exclude_select))$run_number %>%
+          unique() %>% paste(collapse = ", "), # excluded run numbers
+        if (input$data_drift_correction != "none") "TRUE" else "FALSE", # whether to drift correct
+        if (input$data_drift_correction == "loess") "loess" else "lm", # drift method
+        paste(as.numeric(input$data_drift_loess)), # drift span
+        paste0("\"", c(input$n2o_select, input$std1_select, input$std2_select), "\"") %>%
+          paste(collapse = ", "), # what to drift correct with
+        paste0("\"", input$n2o_select, "\"") %>% paste(collapse = ", "), # lab reference
+        paste0("\"", input$std1_select, "\"") %>% paste(collapse = ", "), # standard1
+        paste0("\"", input$std2_select, "\"") %>% paste(collapse = ", ") # standard2
+      )
+  })
+
+  get_code_markdown <- reactive({
+    code <- get_code_preview()
+    if (length(code) > 0) {
+      # replace the basenames with full paths
+      return(sub(paste0('"', basename(get_data_folder())), paste0('"', get_data_folder()), code, fixed = TRUE))
+    }
+    return("")
+  })
+
+  # Data code preview ----
+  observe({
+    code <- get_code_preview()
+    if (length(code) > 0) {
+      code <- knitr::purl(text = code, documentation = 0L) # tangle code
+      updateAceEditor(session, "data_code", value = code)
+    } else
+      updateAceEditor(session, "data_code", value = "# No data selected yet")
+  })
+
+  # RMarkdown saving ----
+  rmarkdown_file <- reactive({
+    report_file <- file.path(data_dir, "reports", sprintf("%s_report.Rmd", basename(get_data_folder())))
+    con <- file(report_file)
+    writeLines(get_code_markdown(), con)
+    close(con)
+    message("Rmarkdown saved to ", report_file)
+    return(report_file)
+  })
+
+  # Markdown download ----
+  output$data_code_download <- downloadHandler(
     filename = function() {paste0(basename(get_data_folder()), "_report.Rmd")},
+    content = function(filename) {file.copy(rmarkdown_file(), filename)})
+
+  # HTML report ----
+  output$data_report_download <- downloadHandler(
+    filename = function() {paste0(basename(get_data_folder()), "_report.html")},
     content = function(filename) {
       withProgress(message = "Generating report...", value = 0, {
 
-        if (!file.exists(file.path(data_dir, "reports")))
-          dir.create(file.path(data_dir, "reports"))
-
-        # message
-        incProgress(0.1, detail = "creating excel data export")
+        # excel export
+        incProgress(0.2, detail = "creating excel data export")
         data_file <- file.path(data_dir, "reports",
                                sprintf("%s_data.xlsx", basename(get_data_folder())))
         write_export_file(data_file, get_overview_data(), get_data_summary())
 
-        # read template file
-        incProgress(0.1, detail = "creating Rmd report")
-        template_file <- system.file("shiny-apps", "data_viewer", "template.Rmd", package = "isorunN2O")
-        template <- readChar(template_file, file.info(template_file)$size)
-
-        message("Generating Rmarkdown report file.")
-
-        # create report file
-        report <- template %>%
-          sprintf(
-            basename(get_data_folder()),
-            get_data_folder(), # read from dxf
-            input$n2o_rt[1], input$n2o_rt[2], # retention time
-            data_file, # read from excel
-            (get_data_table() %>% filter(file %in% input$exclude_select))$run_number %>%
-              unique() %>% paste(collapse = ", "), # excluded run numbers
-            if (input$data_drift_correction != "none") "TRUE" else "FALSE", # whether to drift correct
-            if (input$data_drift_correction == "loess") "loess" else "lm", # drift method
-            paste(as.numeric(input$data_drift_loess)), # drift span
-            paste0("\"", c(input$n2o_select, input$std1_select, input$std2_select), "\"") %>%
-              paste(collapse = ", "), # what to drift correct with
-            paste0("\"", input$n2o_select, "\"") %>% paste(collapse = ", "), # lab reference
-            paste0("\"", input$std1_select, "\"") %>% paste(collapse = ", "), # standard1
-            paste0("\"", input$std2_select, "\"") %>% paste(collapse = ", ") # standard2
-          )
-
-        # store report in reports folder
-        incProgress(0.1, detail = "storing Rmd report")
-        report_file <- file.path(data_dir, "reports", sprintf("%s_report.Rmd", basename(get_data_folder())))
-        con <- file(report_file)
-        writeLines(report, con)
-        close(con)
-        message("Rmarkdown file saved on server.")
-
         # render report
-        incProgress(0.1, detail = "trying to generate HTML report")
+        incProgress(0.2, detail = "trying to generate HTML report")
+        markdown_file <- rmarkdown_file()
+        html_file <- sub("\\.Rmd$", ".html", markdown_file)
+        success <- FALSE
         tryCatch({
           message("Rendering rmarkdown on server.")
-          rmarkdown::render(report_file)
+          rmarkdown::render(markdown_file, output_file = html_file)
+          success <- TRUE
         },
         error = function(e) message("ERROR while rendering Rmarkdown: ", e$message))
 
-        # store report in temporary file for download
-        incProgress(0.1, detail = "preparing Rmd for download")
+        # download file
+        if (!success) {
+          con <- file(html_file)
+          writeLines("failed", con)
+          close(con)
+        }
+
+        incProgress(0.2, detail = "preparing HTML for download")
         message("Saving rmarkdown to download file.")
-        con <- file(filename)
-        writeLines(report, con)
-        close(con)
+        file.copy(html_file, filename)
       })
     })
 

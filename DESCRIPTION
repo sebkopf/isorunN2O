@@ -33,6 +33,7 @@ Suggests:
     openxlsx,
     shiny,
     shinyBS,
+    shinyAce,
     DT,
     grid,
     gridExtra,

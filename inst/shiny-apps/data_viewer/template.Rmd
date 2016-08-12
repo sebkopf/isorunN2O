@@ -5,33 +5,19 @@ output: html_document
 ---
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# load isorun library
 library(isorunN2O)
+
 ```
 
 ## Processing step #1
 
-Load data (from excel by default, from raw .dxf files is also presented but commented out, can delete if not used), assign categories, evaluate drift, correct for O17.
+Load data, assign categories, evaluate drift, correct for O17.
 
 ```{r processing_step1, fig.width = 9, fig.height = 7, warning=FALSE}
+# processing step1
 data.raw <- 
-  
-  ### approach #1: reading from original dxf files ###
-  # # TODO: change to local folder
-  # load_run_folder("%s", quiet = T) %%>%%
-  # # pull out the data summary from the raw isodat file:
-  # get_isodat_data_tables() %%>%% 
-  # # derive file categories:
-  # parse_file_names() %%>%% 
-  # # discard the reference peaks:
-  # select_N2O_peak( c(%d, %d) ) %%>%% 
-  # # focus on the columns we care about:
-  # rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`) %%>%%
-  
-  ### approach #2: reading from N2O data viewer excel export ### 
-  # TODO: change to local folder 
-  readxl::read_excel("%s", sheet = "data") %%>%%
-  
-  ### regular processing for both approaches ###
+  %s 
   # select which columns to keep:
   select_columns(folder, date, analysis, run_number, category, name, volume, area, d45, d46, quiet = TRUE) %%>%%
   # identify excluded analyses
@@ -55,6 +41,7 @@ data.raw <-
   mutate(
     panels = factor(group, levels = c("Lab ref", "Standard 1", "Standard 2")),
     colors = ifelse(group %%in%% c("Standard 1", "Standard 2"), name, category))
+
 ```
 
 #### Overview plot
@@ -66,6 +53,7 @@ Here for d15.raw but could use others.
 data.raw %%>%% plot_overview(d15.raw, color = colors, panel = panels)
 # make into interactive version
 make_interactive() 
+
 ```
 
 #### Standards
@@ -73,6 +61,7 @@ make_interactive()
 Here for d15.raw and d18.raw but could use different ones or more than these two.
 
 ```{r standards_plot, fig.width = 9, fig.height = 7}
+# standards
 data.raw %%>%% 
   # filter raw data to only look at the standards
   filter(group %%in%% c("Standard 1", "Standard 2")) %%>%% 
@@ -80,6 +69,7 @@ data.raw %%>%%
   plot_overview(d15.raw, d18.raw, color = colors) + 
   # make use of ggplot's facet_wrap for panelling
   facet_wrap(panel ~ group, scales = "free", ncol = 2)
+
 ```
 
 ## Processing step #2
@@ -99,6 +89,7 @@ Calculate concentrations and calibrate against isotopic standards. This is not i
 #   calibrate_d15(d15.raw, standards = c(`USGS-34` = -1.8, `IAEA-NO3` = 4.7)) %%>%%
 #   # calibrate d18 based on the two provided standards
 #   calibrate_d18(d18.raw, cell_volume = 1.5, standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61))
+
 ```
 
 ## Data overview / summary
@@ -106,31 +97,32 @@ Calculate concentrations and calibrate against isotopic standards. This is not i
 Here for the raw data but could use for calibrated data as well.
 
 ```{r}
+# data overview
 data.raw %%>%%
   # use grouping to calculate averages / stdevs for each group
-  group_by(category, name) %%>%%
+  group_by(category) %%>%%
   # include d15.raw and d18raw as well as the area and include all samples
-  generate_data_table(d15.raw, d18.raw, area, cutoff = 0) %%>%%
+  generate_data_table(d15.raw, d18.raw, area, cutoff = 3) %%>%%
   # sort data
   ungroup() %%>%% arrange(desc(n), name) %%>%%
   # output in table format
   knitr::kable(digits = 2)
+
 ```
 
-## Export data
+## Export final data to Excel
 
-Example of exporting specific parts of the data (not run here)
+Example of exporting specific parts of the data
 
-```{r}
+```{r, eval=FALSE}
+# export data
 data.raw %%>%% 
-  # only select columns not starting with p., ending in .raw or .drift and 
-  # rename some columns while we're at it
-  select(-starts_with("p."), -ends_with(".raw"), -ends_with(".drift"), d15 = d15.raw, d18 = d18.raw) %%>%%
+  # example: only select columns not starting with p. (parameter columns)
+  select(-starts_with("p.")) %%>%%
   # sorting
   arrange(category, name) %%>%%
-#  # export (not run, uncomment to run)
-#  openxlsx::write.xlsx(file = "export.xlsx") %%>%%
-  invisible() # invisible instead
+  # export to excel
+  openxlsx::write.xlsx(file = "export.xlsx") 
 ```
 
 

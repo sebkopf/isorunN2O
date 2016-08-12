@@ -1,5 +1,6 @@
 library(shiny)
 library(shinyBS)
+library(shinyAce)
 library(DT)
 library(isorunN2O)
 source("folder_browser.R")
@@ -72,7 +73,23 @@ ui <- shinyUI(
             # MAIN DISPLAY PANEL
 
             mainPanel(
-              bsCollapsePanel("Categorization", htmlOutput("category_info"), value = "info", style = "info"),
+
+              bsCollapse(id = "collapse_info", #open = "code_preview", # NOTE: comment out to have collapsed at beginning
+                # CATEGORIZATION ----
+
+                bsCollapsePanel("Categorization", htmlOutput("category_info"), value = "info", style = "info"),
+
+                # CODE PREVIEW ----
+
+                bsCollapsePanel(
+                  span("Code preview", div(class = "pull-right", downloadLink("data_code_download", span(icon("download"), " Code")))),
+                  value = "code_preview", style = "success",
+                  radioButtons("code_load_source", label = NULL, inline = TRUE,
+                               c("load from raw data files (dxf)"="dxf", "load from data export (xlsx)"="xlsx")),
+                  aceEditor("data_code", mode = "r",
+                            theme="ambiance", readOnly = TRUE,
+                            height = "200px"))
+              ),
               tags$div(class = "pull-right",
                        downloadButton("data_report_download", "Report", icon("save"))),
               tags$div(class = "pull-right",
