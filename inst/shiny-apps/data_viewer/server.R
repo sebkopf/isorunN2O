@@ -268,7 +268,7 @@ server <- shinyServer(function(input, output, session) {
 
           # store updated cache
           message("Updating cached data file ", cache_file)
-          save_cache(data$files, cache_file)
+          isorunN2O:::save_cache(data$files, cache_file)
         }
       })
     }
