@@ -20,7 +20,6 @@ server <- shinyServer(function(input, output, session) {
 
   # STARTUP =======
   data_dir <- .GlobalEnv$.base_dir
-  data_root <- c(Data = data_dir)
   settings_file <- file.path(data_dir, "settings.csv")
   message("\n***************************************************************",
           "\nINFO: Launching N2O Data Viewer ...",
@@ -205,7 +204,7 @@ server <- shinyServer(function(input, output, session) {
 
   # DATA ==================
   devmode <- FALSE # FIXME: for testing purposes only
-  devrun <- "testing.RData"
+  devfolder <- file.path(data_dir, "150313_P02E_run03")
 
   # upload
   observe({
@@ -229,7 +228,7 @@ server <- shinyServer(function(input, output, session) {
   # load data
   is_data_loaded <- reactive(length(get_data_folder()) > 0)
   get_data_folder <- reactive({
-    if (devmode && file.exists(devrun)) return("testing")
+    if (devmode && file.exists(devfolder)) return(devfolder)
     validate(need(input[["data_folder-open"]] > 0, message = FALSE))
     isolate({
       data$files <- list() # reset data files everytime the input folder changes
@@ -247,18 +246,18 @@ server <- shinyServer(function(input, output, session) {
 
     if ( is_data_loaded() ) {
 
-      # testing
-      if (devmode && file.exists(devrun)) {
-        load(devrun) # FIXME for testing only
-        return(testing)
-      }
-
       if (input$data_refresh > 0 && isolate(length(data$files)) > 0)
         message("INFO: Checking for newly added files in folder ", basename(get_data_folder()))
 
       # load all files that are not loaded yet
       isolate({
         files <- list.files(get_data_folder(), pattern = "\\.dxf$", full.names = TRUE)
+        cache_file <- file.path(get_data_folder(), "cache.RData")
+        if (file.exists(cache_file)) {
+          message("Loading data from cached file ", cache_file)
+          load(file = cache_file)
+          data$files <- cache
+        }
         not_loaded_yet <- setdiff(basename(files), names(data$files)) # check which files have not been loaded yet
 
         if ( length(not_loaded_yet) > 0) {
@@ -267,14 +266,13 @@ server <- shinyServer(function(input, output, session) {
             withProgress(message = 'Loading data...', value = 0, {
               load_isodat_files (files[basename(files) %in% not_loaded_yet], function(file, n) incProgress(1/n, detail = paste0("Reading ", file, " ...")))
             }))
+
+          # store updated cache
+          message("Updating cached data file ", cache_file)
+          cache <- data$files
+          save(cache, file = cache_file)
         }
       })
-    }
-
-    # testing
-    if (devmode && !file.exists(devrun)) {
-      testing <- data$files
-      save(testing, file = devrun)
     }
 
     return(data$files)
