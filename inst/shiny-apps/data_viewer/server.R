@@ -606,7 +606,9 @@ server <- shinyServer(function(input, output, session) {
     code <- get_code_preview()
     if (length(code) > 0) {
       # replace the basenames with full paths
-      return(sub(paste0('"', basename(get_data_folder())), paste0('"', get_data_folder()), code, fixed = TRUE))
+      code <- gsub(paste0('"', basename(get_data_folder())), paste0('"', get_data_folder()), code, fixed = TRUE)
+      code <- gsub("\n\n```", "\n```", code)
+      return(code)
     }
     return("")
   })

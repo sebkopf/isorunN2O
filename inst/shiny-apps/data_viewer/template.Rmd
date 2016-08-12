@@ -104,7 +104,7 @@ data.raw %%>%%
   # include d15.raw and d18raw as well as the area and include all samples
   generate_data_table(d15.raw, d18.raw, area, cutoff = 3) %%>%%
   # sort data
-  ungroup() %%>%% arrange(desc(n), name) %%>%%
+  ungroup() %%>%% arrange(desc(n), category) %%>%%
   # output in table format
   knitr::kable(digits = 2)
 
