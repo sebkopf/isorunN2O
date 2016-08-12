@@ -15,8 +15,8 @@ docu: vignettes
 	# for the whole package
 	R CMD Rd2pdf --no-preview -o inst/doc/$(PKGNAME)_$(PKGVERS).pdf .
 
-app_dev:
-	Rscript -e "isorunN2O:::run_data_viewer_dev(base_dir = 'raw_data', app_dir = 'inst/shiny-apps/data_viewer', launch.browser = T)"
+gui_dev:
+	bundle exec guard
 
 build:
 	cd ..;\
