@@ -46,7 +46,10 @@ ui <- shinyUI(
                    htmlOutput("data_loaded_masses")),
             column(width = 9, htmlOutput("data_loaded_files"))
           ),
-          plotOutput("data_traces_plot", height="500px", width = "900px")
+          tabsetPanel(
+            tabPanel("Static Plot", plotOutput("data_traces_plot", height="500px", width = "900px")),
+            tabPanel("Interactive Plot", plotlyOutput("data_traces_iplot", height="500px", width = "900px"))
+          )
         ),
 
         # Overviews

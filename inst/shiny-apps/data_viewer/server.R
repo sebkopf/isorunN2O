@@ -286,6 +286,11 @@ server <- shinyServer(function(input, output, session) {
     }
   )
   output$data_traces_plot <- renderPlot(make_data_traces_plot())
+  output$data_traces_iplot <- renderPlotly({
+    p <- make_data_traces_plot() + theme(legend.position = "none")
+    class(p$mapping) <- "uneval"
+    plotly::ggplotly(p)
+  })
 
   # Data folder and N2O peak selection
   output$loaded_data_folder <- renderText(paste("Loaded folder:", basename(get_data_folder())))
