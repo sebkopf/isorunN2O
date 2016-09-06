@@ -73,7 +73,6 @@ As well as the packages hosted on GitHub (run in terminal within CRAN_packages f
 ```coffee
 mkdir GitHub_packages
 cd GitHub_packages
-curl -L -o tmp.zip https://github.com/ropensci/plotly/archive/master.zip && unzip tmp.zip && rm tmp.zip
 curl -L -o tmp.zip https://github.com/sebkopf/isotopia/archive/master.zip && unzip tmp.zip && rm tmp.zip
 curl -L -o tmp.zip https://github.com/sebkopf/isoread/archive/master.zip && unzip tmp.zip && rm tmp.zip
 curl -L -o tmp.zip https://github.com/sebkopf/isorunN2O/archive/master.zip && unzip tmp.zip && rm tmp.zip
@@ -102,7 +101,7 @@ url <- paste0("file:", source_path) # windows
 install.packages("devtools", contriburl = url)
 
 # install github packages with their dependencies
-sapply(c("plotly", "isotopia", "isoread", "isorunN2O"), function(i) {
+sapply(c("isotopia", "isoread", "isorunN2O"), function(i) {
   pkg_path <- file.path(source_path, "GitHub_packages", paste0(i, "-master"))
   stopifnot(file.exists(pkg_path))
   deps <- devtools::dev_package_deps(pkg_path, dep = T)$package
