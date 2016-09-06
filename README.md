@@ -7,13 +7,12 @@ This package facilitates the reading, processing and visualization of N2O isotop
 
 ## Installation
 
-The package is based on the functionality provided by the [`isoread`](https://github.com/sebkopf/isoread#isoread) and [`isotopia`](https://github.com/sebkopf/isotopia#isotopia) packages to load IRMS data directly from their raw data files. All three can be installed directly from GitHub using the `devtools` package. Additionally, the package uses interactive plotting tools provided by [plotly](https://github.com/ropensci/plotly), which may not yet be available officially but can also be installed from GitHub.
+The package is based on the functionality provided by the [`isoread`](https://github.com/sebkopf/isoread#isoread) and [`isotopia`](https://github.com/sebkopf/isotopia#isotopia) packages to load IRMS data directly from their raw data files. All three can be installed directly from GitHub using the `devtools` package. 
 
 ```{r, eval = FALSE}
 install.packages("devtools")
 devtools::install_github("sebkopf/isotopia", build_vignettes = TRUE)
 devtools::install_github("sebkopf/isoread", build_vignettes = TRUE)
-devtools::install_github("ropensci/plotly")
 devtools::install_github("sebkopf/isorunN2O", build_vignettes = TRUE)
 ```
 
