@@ -13,7 +13,7 @@ get_isodat_data_tables <- function(isodat_files, volume = "Identifier 2", quiet 
            folder = basename(i$filepath),
            file = i$filename,
            date = i$creation_date,
-           analysis = as.numeric(sub("^MAT253(\\d+)_.*$", "\\1", file)),
+           analysis = as.numeric(sub("^(MAT253)?(\\d+)_.*$", "\\2", file)),
            volume = suppressWarnings(as.numeric(i$data[[volume]])),
            comment = i$data$Comment,
            preparation = i$data$Preparation)
@@ -94,7 +94,7 @@ parse_file_names <- function(data, quiet = FALSE) {
     files <- .$file %>% unique()
 
     # remove MAT number and file ending
-    groups <- sub("^MAT\\d+__?([^.]+)(-\\d{4})?\\.dxf$", "\\1", files)
+    groups <- sub("^(MAT?)\\d+__?([^.]+)(-\\d{4})?\\.dxf$", "\\2", files)
 
     # trim identical beginning and end parts
     min_chars <- min(sapply(groups, nchar))
