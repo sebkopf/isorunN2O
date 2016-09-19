@@ -94,7 +94,7 @@ parse_file_names <- function(data, quiet = FALSE) {
     files <- .$file %>% unique()
 
     # remove MAT number and file ending
-    groups <- sub("^(MAT?)\\d+__?([^.]+)(-\\d{4})?\\.dxf$", "\\2", files)
+    groups <- sub("^(MAT)?\\d+__?([^.]+)(-\\d{4})?\\.dxf$", "\\2", files)
 
     # trim identical beginning and end parts
     min_chars <- min(sapply(groups, nchar))
