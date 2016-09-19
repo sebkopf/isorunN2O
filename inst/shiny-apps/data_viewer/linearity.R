@@ -56,7 +56,7 @@ get_on_off_table <- function(df, pattern = "ON OFF.dxf") {
     on_off_table %>%
     dplyr::group_by(file) %>%
     dplyr::summarize(
-      `ON/OFF File` = sub("^(MAT\\d+).*", "\\1", unique(file)),
+      `ON/OFF File` = sub("^(MAT)?(\\d+).*", "\\2", unique(file)),
       `Std. Dev. d18O` = signif(sd(` 18O/16O`), 3),
       `Std. Dev. d15N` = signif(sd(` 15N/14N`), 3)
     ) %>%
