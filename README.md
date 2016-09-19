@@ -11,9 +11,9 @@ The package is based on the functionality provided by the [`isoread`](https://gi
 
 ```{r, eval = FALSE}
 install.packages("devtools")
-devtools::install_github("sebkopf/isotopia", build_vignettes = TRUE)
-devtools::install_github("sebkopf/isoread", build_vignettes = TRUE)
-devtools::install_github("sebkopf/isorunN2O", build_vignettes = TRUE)
+devtools::install_github("sebkopf/isotopia", build_vignettes = TRUE, dependencies = TRUE)
+devtools::install_github("sebkopf/isoread", build_vignettes = TRUE, dependencies = TRUE)
+devtools::install_github("sebkopf/isorunN2O", build_vignettes = TRUE, dependencies = TRUE)
 ```
 
 ## How to use?
