@@ -28,3 +28,5 @@ raw_data/*
 # Ignore exports
 *.xlsx
 
+# Ignore file system files
+*.DS_Store

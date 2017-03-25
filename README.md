@@ -7,7 +7,7 @@ This package facilitates the reading, processing and visualization of N2O isotop
 
 ## Installation
 
-The package is based on the functionality provided by the [`isoread`](https://github.com/sebkopf/isoread#isoread) and [`isotopia`](https://github.com/sebkopf/isotopia#isotopia) packages to load IRMS data directly from their raw data files. All three can be installed directly from GitHub using the `devtools` package. 
+The package is based on the functionality provided by the [`isoread`](https://github.com/sebkopf/isoread#isoread) and [`isotopia`](https://github.com/sebkopf/isotopia#isotopia) packages to load IRMS data directly from their raw data files. All three can be installed directly from GitHub using the `devtools` package (see [troubleshooting](#troubleshooting) section below in case of issues with `devtools` installs).
 
 ```{r, eval = FALSE}
 install.packages("devtools")
@@ -31,4 +31,9 @@ This package also includes a browser based application for interactive N2O run m
 On Windows, the above `install_github` calls can fail because of the requirement to create zip archieves during some vignette creation steps. If this is the case, [install Rtools](https://cran.r-project.org/bin/windows/Rtools/), restart R and RStudio and try to run the installation again. 
 
 If you run into any trouble installting the packages that is not resolved easily, try installing them again without the vignettes, which are sometimes the sole culprits, i.e. `devtools::install_github(...., build_vignettes = FALSE)`, which should provide the fully functional package, just without the `vignette` tutorial (which you can still check out online as mentioned in the **How to use?** section).
+
+#### Issues with automatic dependency installation
+
+The latest version of the `devtools` package on CRAN (version 1.12.0) has a bug that causes issues with the installation of package dependencies, especially on Windows, which usually manifest as errors during the installation of GitHub packages stating some dependency (e.g. `stringi` or `dplyr` or `htmltools`, etc. package missing). Please check this [troubleshooting Gist](https://gist.github.com/sebkopf/3cf82afb2e535e92f2cfcf3e66d48475) for details if you encounter this error.
+
 
