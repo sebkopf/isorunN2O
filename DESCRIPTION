@@ -1,8 +1,7 @@
 Package: isorunN2O
 Type: Package
 Title: Process IRMS runs of N2O analyses.
-Version: 0.2.3
-Date: 2016-01-06
+Version: 0.2.4
 Author: Sebastian Kopf
 Maintainer: Sebastian Kopf <seb.kopf@gmail.com>
 Description: This package facilitates the reading, processing and visualization
