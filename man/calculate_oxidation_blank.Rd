@@ -30,4 +30,3 @@ measurements of the blank peak. For setting this parameter manually, please use
 \seealso{
 \code{\link{change_category}}
 }
-

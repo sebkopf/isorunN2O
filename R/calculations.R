@@ -665,6 +665,7 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
 #'  Note: they are matched to the data by "category" (not by name)
 #' @return introduces the column d18.cal and parameters p.d18_m_true, p.d18_m_conc, p.d18_m_true:conc and p.d18_b
 #' @export
+#' @note FIXME: this should have a term for evaluating whether any extrapolation happens unepxectedly that then causes trouble!!
 calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volume,
                           standards = c("USGS-34" = -27.93, "IAEA-NO3" = 25.61), quiet = FALSE) {
 

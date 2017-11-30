@@ -1,20 +1,7 @@
-#' @title Process IRMS runs of N2O analyses
-#' @description This package facilitates the reading, processing and visualization of N2O isotope data including drift correction, 17O correction and standards calibration.
-#'
-#' To get started, take alook at the tutorial R markdown file.
-#'
-#' @name isorunN2O
-#' @docType package
-#' @title isorunN2O package
-#' @author Sebastian Kopf
-#'
-#' @include loading.R
-#' @include processing.R
-#' @include O17.R
-#' @include drift.R
-#' @include calculations.R
-#' @include plotting.R
-#' @import dplyr
+#' @keywords internal
+"_PACKAGE"
+
+#' @importFrom dplyr select rename arrange mutate filter %>%
 #' @importFrom tidyr gather gather_ extract extract_ spread spread_
 #' @import lazyeval
 #' @import ggplot2

@@ -9,4 +9,3 @@ round_to_err(x, sd, sig_digits = 1, sep = "+-")
 \description{
 error round
 }
-

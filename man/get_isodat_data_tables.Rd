@@ -17,4 +17,3 @@ get_isodat_data_tables(isodat_files, volume = "Identifier 2", quiet = FALSE)
 This function combines all the data tables from a number of isodat_files
 into one big data frame for data processing and plotting
 }
-

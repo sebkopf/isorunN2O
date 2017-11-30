@@ -12,4 +12,3 @@ run_data_viewer_dev(base_dir = ".", app_dir = file.path("inst",
 for development of data viewer
 not exported to namespace but helpful for active development of the shiny app
 }
-

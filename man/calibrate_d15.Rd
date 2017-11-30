@@ -33,4 +33,3 @@ implement single point correction
 
 consider removing the storage of the regression parameters since they can be inferred from the others
 }
-

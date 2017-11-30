@@ -14,4 +14,3 @@ parse_file_names(data, quiet = FALSE)
 \description{
 This function parses the file names for each analysis to extract the actual sample names, analysis number, run order and groupings of analyses into appropriate categories depending on shared sample name prefixes. This automatically groups by folder to properly reconstruct run order (i.e. can be run on a combination of multiple runs if need be). This should be run at the very beginning before anything else because once N2O peaks are identified, the runs without detectable N2O peak in it disappear.
 }
-

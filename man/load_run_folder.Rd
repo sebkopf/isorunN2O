@@ -18,4 +18,3 @@ load_run_folder(folder, cache = folder, quiet = F, ...)
 \description{
 This function loads all the raw data files and caches the raw data if \code{cache} is set.
 }
-

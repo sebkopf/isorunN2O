@@ -9,4 +9,3 @@ save_cache(data, cache_file, quiet = F)
 \description{
 store cache file
 }
-

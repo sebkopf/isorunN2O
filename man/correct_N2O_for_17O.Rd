@@ -34,4 +34,3 @@ expects raw delta values (i.e. NOT in permil)}
 This function takes d45 and d46 and corrects the values for O17 to derive raw d15 and d18 values.
 The equations used are based on those derived by Jan Kaiser and Thomas Röckmann in "Correction of mass spectrometric isotope ratio measurements for isobaric isotopologues of O2, CO, CO2, N2O and SO2" (Rapid Communications in Mass Spectrometry, 2008, 3997--4008). It is important to note that this function does not currently take site preference into consideration
 }
-

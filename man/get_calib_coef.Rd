@@ -9,4 +9,3 @@ get_calib_coef(key, model, name)
 \description{
 method making it easier to retrieve regression coefficients by name
 }
-

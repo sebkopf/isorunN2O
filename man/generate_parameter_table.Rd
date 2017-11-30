@@ -12,4 +12,3 @@ generate_parameter_table(data)
 \description{
 generate a summary of the parameters (lists all unique rows so make sure to group appropriately!)
 }
-

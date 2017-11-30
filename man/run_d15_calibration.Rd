@@ -12,4 +12,3 @@ run_d15_calibration(data, standards, organic, infer_ref_gas = TRUE,
 runs the d15 calibration internally
 called from calibrate_d15 and calibrate_d15_org
 }
-
