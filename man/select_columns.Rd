@@ -14,4 +14,3 @@ select_columns(data, ..., quiet = FALSE)
 \description{
 This is just a convenience wrapper for \code{\link{select}} but one that provides helpful information about the selected and discarded columns.
 }
-

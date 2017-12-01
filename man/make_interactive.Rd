@@ -20,4 +20,3 @@ which order. By default, shows only "text" aesthetic if it is mapped, otherwise 
 \description{
 Note that in order for these plots to render properly in knitted RMarkdown documents, you have to actually load the plotly library in your code. Not doing it in this function itself because it's generally considered bad practice.
 }
-

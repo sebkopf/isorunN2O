@@ -17,4 +17,3 @@ run (Unix systems) or run.bat (Windows) systems from the GitHub repository
 (\link{http://www.github.com/sebkopf/isorunN2O/inst/shiny-apps/data_viewer/}
 and modify depending on your R executable.
 }
-

@@ -9,4 +9,3 @@ load_cache(cache_file, quiet = F)
 \description{
 store cach file
 }
-

@@ -36,4 +36,3 @@ Calibrate organic d15 values with the given standards
 \note{
 should this also record the actual regression parameters?
 }
-

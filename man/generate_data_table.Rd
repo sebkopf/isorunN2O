@@ -18,4 +18,3 @@ generate_data_table(data, ..., cutoff = 1, .dots = c())
 \description{
 Generate an overview table with the data
 }
-

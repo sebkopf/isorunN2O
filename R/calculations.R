@@ -270,7 +270,7 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
         yield, run_size) %>% message()
     }
 
-    return(df)
+    df
   })
 
   return(data)
@@ -395,12 +395,13 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
         mutate(y = .d15 - .d15.true)
 
       # model
-      if (organic)
+      if (organic) {
         # with volume
-        m <- with(stds, lm(y ~ .V : .AI : .d15.true + .AI : .d15.true + .V : .AI + .AI))
-      else
+        m <- lm(y ~ .V : .AI : .d15.true + .AI : .d15.true + .V : .AI + .AI, data = stds)
+      } else {
         # without volume
-        m <- with(stds, lm(y ~ .AI : .d15.true + .AI))
+        m <- lm(y ~ .AI : .d15.true + .AI, data = stds)
+      }
 
       # coefficients
       bs <- c(
@@ -514,7 +515,8 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
 
         message(msg)
       }
-      return(out)
+
+      out
     }) %>% select(-.AI)
 }
 
@@ -665,6 +667,7 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
 #'  Note: they are matched to the data by "category" (not by name)
 #' @return introduces the column d18.cal and parameters p.d18_m_true, p.d18_m_conc, p.d18_m_true:conc and p.d18_b
 #' @export
+#' @note FIXME: this should have a term for evaluating whether any extrapolation happens unepxectedly that then causes trouble!!
 calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volume,
                           standards = c("USGS-34" = -27.93, "IAEA-NO3" = 25.61), quiet = FALSE) {
 
@@ -696,7 +699,7 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
       # regression model (based on true isotopic value as well as effective concentration)
       m <- filter(., category %in% names(standards)) %>%
         left_join(stds.df, by = "category") %>%
-        with(lm(.d18 ~ d18.true*.C_vial))
+        { lm(.d18 ~ d18.true*.C_vial, data = .) }
 
       if (!quiet) {
         sprintf(

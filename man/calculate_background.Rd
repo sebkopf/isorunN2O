@@ -28,4 +28,3 @@ background peak. For setting this parameter manually, please use
 \seealso{
 \code{\link{change_category}}
 }
-

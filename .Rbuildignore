@@ -4,3 +4,7 @@
 ^\.travis\.yml$     # Used for continuous integration testing with travis
 ^raw_data$          # Raw data files
 ^cache$             # Cached data
+^docs$
+^_pkgdown\.yml$
+^README\.Rmd$
+^README-.*\.png$

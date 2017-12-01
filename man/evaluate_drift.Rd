@@ -38,4 +38,3 @@ introduces the new columns d45.drift and d46.drift + parameter column p.drift
 \description{
 This function evaluates drift and can correct for it (use parameter \code{correct = TRUE}). Note that it corrects drift based on the 45/44 and 46/44 ratio, although one could certainly debate the merits of doing the O17 correction first. Although designed to be specific for d45 and d46, it can be used on any two columns really, only note that the new columns are currently always called d45.drift and d46.drift
 }
-

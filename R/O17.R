@@ -1,9 +1,12 @@
+
+
 #' Correct N2O data for O17
 #'
 #' This function takes d45 and d46 and corrects the values for O17 to derive raw d15 and d18 values.
-#' The equations used are based on those derived by Jan Kaiser and Thomas Röckmann in "Correction of mass spectrometric isotope ratio measurements for isobaric isotopologues of O2, CO, CO2, N2O and SO2" (Rapid Communications in Mass Spectrometry, 2008, 3997--4008). It is important to note that this function does not currently take site preference into consideration
+#' The equations used are based on those derived by Jan Kaiser and Thomas Röckmann in
+#' "Correction of mass spectrometric isotope ratio measurements for isobaric isotopologues of O2, CO, CO2, N2O and SO2" (Rapid Communications in Mass Spectrometry, 2008, 3997--4008).
+#' It is important to note that this function does not currently take site preference into consideration
 #'
-#' @export
 #' @param data the data frame
 #' @param d45 column (in permil)
 #' @param d46 column (in permil)
@@ -13,10 +16,9 @@
 #' @param lambda the mass dependent scaling coefficient for the oxygen isotopes, default 0.52 (value from Werner and Brandt, 2001)
 #' @param d_max the maximum +/- delta value to consider in the root finding [in permil], should not need to change this unless samples are heavily enriched
 #' @param quiet whether the function should output information messages or be quiet (default is to output)
-correct_N2O_for_17O <- function (data, d45, d46,
-                                 ref_17R = 0.0003799, ref_18R = 0.0020052, ref_15R_avg = 0.0036782,
-                                 lambda = 0.52, d_max = 1000,
-                                 quiet = FALSE) {
+#' @export
+#' @return the data frame with corrected 17O
+correct_N2O_for_17O <- function (data, d45, d46, ref_17R = 0.0003799, ref_18R = 0.0020052, ref_15R_avg = 0.0036782, lambda = 0.52, d_max = 1000, quiet = FALSE) {
 
   if (missing(d45)) stop("please specify the column that holds the d45 data")
   if (missing(d46)) stop("please specify the columm that holds the d46 data")

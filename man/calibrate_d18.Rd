@@ -49,5 +49,6 @@ Calibrate d18 data with the given standards.
 Uses a multivariate linear regression that takes the effective concentration
 in the sample vials into consideration (as well as covariance between standards
 and effective concentration).
-}
 
+FIXME: this should have a term for evaluating whether any extrapolation happens unepxectedly that then causes trouble!!
+}

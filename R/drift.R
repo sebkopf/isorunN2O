@@ -155,7 +155,7 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
       if (grps_text != "") message("      group: ", grps_text)
     }
 
-    return(out)
+    out
   })
 
   df %>% select(-x, -.d45, -.d46, -.included, -.group) %>% return()

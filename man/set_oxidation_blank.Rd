@@ -20,4 +20,3 @@ measurements of the oxidation blank alone (using \code{\link{calculate_oxidation
 This function is for setting this parameter manually in cases where the background
 is estimated or the peak was too small to be automatically recorded.
 }
-
