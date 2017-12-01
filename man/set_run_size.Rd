@@ -19,4 +19,3 @@ Note that this is calculated automatically when using calculate_concentrations,
 only use this function to set the run size manually or overwrite automatic
 calculations from calculate_concentrations.
 }
-

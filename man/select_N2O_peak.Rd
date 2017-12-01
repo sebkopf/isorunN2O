@@ -16,4 +16,3 @@ select_N2O_peak(data_table, peak_rt, quiet = FALSE)
 \description{
 Identify the N2O peak
 }
-

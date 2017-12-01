@@ -1,0 +1,77 @@
+title: Isoreader
+url: http://isorunN2O.kopflab.com
+template:
+  params:
+    bootswatch: simplex
+
+home:
+  strip_header: true
+
+navbar:
+  title: isorunN2O
+  type: default
+  left:
+  - text: Home
+    href: index.html
+  - text: Tutorial
+    href: articles/N2O_data_reduction_tutorial.html
+  - text: Reference
+    href: reference/index.html
+  right:
+  - icon: fa-github fa-lg
+    href: https://github.com/sebkopf/isorunN2O
+
+reference:
+- title: Graphical User Interface
+  desc: >
+
+  contents:
+  - '`run_data_viewer`'
+
+- title: Data Structuring
+  desc: >
+
+  contents:
+  - '`parse_file_names`'
+  - '`select_columns`'
+  - '`select_N2O_peak`'
+  - '`set_background`'
+  - '`set_oxidation_blank`'
+  - '`set_run_size`'
+  - '`change_category`'
+
+- title: Data Processing
+  desc: >
+    Functions based on calculations.
+  contents:
+  - '`correct_N2O_for_17O`'
+  - '`evaluate_drift`'
+  - '`calculate_background`'
+  - '`calculate_concentrations`'
+  - '`calculate_oxidation_blank`'
+  - '`calibrate_d15_org`'
+  - '`calibrate_d15`'
+  - '`calibrate_d18`'
+
+- title: Data Visualization and Reporting
+  desc: >
+
+  contents:
+  - '`plot_overview`'
+  - '`make_interactive`'
+  - '`make_itext`'
+  - '`generate_data_table`'
+  - '`generate_parameter_table`'
+
+- title: Internal functions
+  desc: >
+
+  contents:
+  - '`default_cache_file`'
+  - '`get_calib_coef`'
+  - '`get_isodat_data_tables`'
+  - '`load_cache`'
+  - '`save_cache`'
+  - '`load_run_folder`'
+  - '`round_to_err`'
+  - '`run_d15_calibration`'

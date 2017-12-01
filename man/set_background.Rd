@@ -23,4 +23,3 @@ is estimated or the peak was too small to be automatically recorded.
 \note{
 uses non-standard evaluation
 }
-

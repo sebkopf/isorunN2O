@@ -1,0 +1,6 @@
+urls:
+  reference: http://isorunN2O.kopflab.com/reference
+  article: http://isorunN2O.kopflab.com/articles
+articles:
+  N2O_data_reduction_tutorial: N2O_data_reduction_tutorial.html
+

@@ -16,4 +16,3 @@ change_category(data, criteria, value, quiet = FALSE)
 \description{
 This can be used to assign new categories or change existing ones based on an expression that is evaluated in the context of the data frame.
 }
-

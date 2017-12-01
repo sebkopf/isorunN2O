@@ -25,13 +25,17 @@ correct_N2O_for_17O(data, d45, d46, ref_17R = 0.0003799,
 
 \item{d_max}{the maximum +/- delta value to consider in the root finding [in permil], should not need to change this unless samples are heavily enriched}
 
-\item{quiet}{whether the function should output information messages or be quiet (default is to output)
+\item{quiet}{whether the function should output information messages or be quiet (default is to output)}
+}
+\value{
+the data frame with corrected 17O
 expects raw delta values (i.e. NOT in permil)
 expects raw delta values (i.e. NOT in permil)
-expects raw delta values (i.e. NOT in permil)}
+expects raw delta values (i.e. NOT in permil)
 }
 \description{
 This function takes d45 and d46 and corrects the values for O17 to derive raw d15 and d18 values.
-The equations used are based on those derived by Jan Kaiser and Thomas Röckmann in "Correction of mass spectrometric isotope ratio measurements for isobaric isotopologues of O2, CO, CO2, N2O and SO2" (Rapid Communications in Mass Spectrometry, 2008, 3997--4008). It is important to note that this function does not currently take site preference into consideration
+The equations used are based on those derived by Jan Kaiser and Thomas Röckmann in
+"Correction of mass spectrometric isotope ratio measurements for isobaric isotopologues of O2, CO, CO2, N2O and SO2" (Rapid Communications in Mass Spectrometry, 2008, 3997--4008).
+It is important to note that this function does not currently take site preference into consideration
 }
-

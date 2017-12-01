@@ -34,4 +34,3 @@ This functions generates an overview \code{\link{ggplot}} with either one or mul
 
 \code{\link{make_itext}}
 }
-

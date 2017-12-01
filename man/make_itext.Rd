@@ -13,4 +13,3 @@ for example: make_itext(name, d45 = round(d45, 2), ...)}
 \description{
 Generate more elaborate interactive hover text labels
 }
-

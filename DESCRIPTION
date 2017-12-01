@@ -2,8 +2,7 @@ Package: isorunN2O
 Type: Package
 Title: Process IRMS runs of N2O analyses.
 Version: 0.2.4
-Author: Sebastian Kopf
-Maintainer: Sebastian Kopf <seb.kopf@gmail.com>
+Authors@R: person("Sebastian", "Kopf", email = "sebastian.kopf@colorado.edu", role = c("aut", "cre"))
 Description: This package facilitates the reading, processing and visualization
     of N2O isotope data including drift correction, 17O correction and standards
     calibration.
@@ -38,15 +37,5 @@ Suggests:
     gridExtra,
     scales
 VignetteBuilder: knitr
-Collate:
-    'O17.R'
-    'calculations.R'
-    'data_viewer.R'
-    'drift.R'
-    'loading.R'
-    'plotting.R'
-    'processing.R'
-    'package.R'
-    'reporting.R'
-    'utils.R'
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
+
