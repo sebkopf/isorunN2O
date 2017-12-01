@@ -1,7 +1,7 @@
 Package: isorunN2O
 Type: Package
 Title: Process IRMS runs of N2O analyses.
-Version: 0.2.4
+Version: 0.2.5
 Authors@R: person("Sebastian", "Kopf", email = "sebastian.kopf@colorado.edu", role = c("aut", "cre"))
 Description: This package facilitates the reading, processing and visualization
     of N2O isotope data including drift correction, 17O correction and standards
