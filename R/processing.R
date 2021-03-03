@@ -38,7 +38,8 @@ select_N2O_peak <- function(data_table, peak_rt, quiet = FALSE) {
     df <- data_table %>% filter(
       (Start <= peak_rt[1] & End >= peak_rt[1]) | # peak overlaps with start of interval
         (Start <= peak_rt[2] & End >= peak_rt[2]) | # peak overlaps with end of interval
-        (Start <= peak_rt[1] & End >= peak_rt[2]) # peak spans interval
+        (Start <= peak_rt[1] & End >= peak_rt[2]) | # peak spans interval
+        (Start >= peak_rt[1] & End <= peak_rt[2]) # peak is entirely in interval
     )
     rt_msg <- paste(peak_rt[1], "-", peak_rt[2])
   } else {

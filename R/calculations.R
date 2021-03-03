@@ -270,7 +270,7 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
         yield, run_size) %>% message()
     }
 
-    return(df)
+    df
   })
 
   return(data)
@@ -395,12 +395,13 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
         mutate(y = .d15 - .d15.true)
 
       # model
-      if (organic)
+      if (organic) {
         # with volume
-        m <- with(stds, lm(y ~ .V : .AI : .d15.true + .AI : .d15.true + .V : .AI + .AI))
-      else
+        m <- lm(y ~ .V : .AI : .d15.true + .AI : .d15.true + .V : .AI + .AI, data = stds)
+      } else {
         # without volume
-        m <- with(stds, lm(y ~ .AI : .d15.true + .AI))
+        m <- lm(y ~ .AI : .d15.true + .AI, data = stds)
+      }
 
       # coefficients
       bs <- c(
@@ -514,7 +515,8 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
 
         message(msg)
       }
-      return(out)
+
+      out
     }) %>% select(-.AI)
 }
 
@@ -697,7 +699,7 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
       # regression model (based on true isotopic value as well as effective concentration)
       m <- filter(., category %in% names(standards)) %>%
         left_join(stds.df, by = "category") %>%
-        with(lm(.d18 ~ d18.true*.C_vial))
+        { lm(.d18 ~ d18.true*.C_vial, data = .) }
 
       if (!quiet) {
         sprintf(

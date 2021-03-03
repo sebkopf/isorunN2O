@@ -1,22 +1,15 @@
-# inspired by code from https://github.com/yihui/knitr/master/Makefile
-PKGNAME := $(shell sed -n "s/Package: *\([^ ]*\)/\1/p" DESCRIPTION)
-PKGVERS := $(shell sed -n "s/Version: *\([^ ]*\)/\1/p" DESCRIPTION)
-PKGSRC  := $(shell basename `pwd`)
+# tools for active package development
 
-all: docu install check
 
 vignettes:
-	Rscript -e "require(devtools); devtools::build_vignettes()"
+	Rscript -e "devtools::build_vignettes()"
 
-docu: vignettes
-	rm -f inst/doc/$(PKGNAME)_$(PKGVERS).pdf
-	# for just the functions, use this
-	# R CMD Rd2pdf --title='$(PKGNAME) Package' --no-preview -o inst/doc/$(PKGNAME)_$(PKGVERS).pdf man/*.Rd
-	# for the whole package
-	R CMD Rd2pdf --no-preview -o inst/doc/$(PKGNAME)_$(PKGVERS).pdf .
+check:
+	Rscript -e "devtools::check()"
 
-gui_dev:
-	bundle exec guard
+document:
+	Rscript -e "devtools::document(roclets=c('rd', 'collate', 'namespace'))"
+	Rscript -e "pkgdown::build_site()"
 
 build:
 	cd ..;\
