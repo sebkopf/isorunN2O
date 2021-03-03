@@ -1,8 +1,9 @@
 Package: isorunN2O
 Type: Package
 Title: Process IRMS runs of N2O analyses.
-Version: 0.2.5
-Authors@R: person("Sebastian", "Kopf", email = "sebastian.kopf@colorado.edu", role = c("aut", "cre"))
+Version: 0.3.0.9000
+Authors@R: person("Sebastian", "Kopf", email = "sebastian.kopf@colorado.edu",
+    role = c("aut", "cre"))
 Description: This package facilitates the reading, processing and visualization
     of N2O isotope data including drift correction, 17O correction and standards
     calibration.
@@ -11,17 +12,16 @@ Roxygen: list(wrap = FALSE)
 URL: https://github.com/sebkopf/isorunN2O
 BugReports: https://github.com/sebkopf/isorunN2O/issues
 Depends:
-    dplyr,
-    plotly (>= 3.3.1),
-    ggplot2 (>= 2.1.0)
+    R (>= 3.1)
 Imports:
     methods,
     stats,
+    dplyr,
+    plotly (>= 4.7.1),
+    ggplot2 (>= 2.2.1),
     R.utils,
-    plyr,
     lazyeval,
     tidyr,
-    isoread,
     cowplot,
     gtools
 Suggests:
@@ -36,6 +36,7 @@ Suggests:
     grid,
     gridExtra,
     scales
+Encoding: UTF-8
+LazyData: true
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
-
