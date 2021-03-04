@@ -3,8 +3,8 @@ pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
   N2O_data_reduction_tutorial: N2O_data_reduction_tutorial.html
-last_built: 2021-03-04T03:56Z
+last_built: 2021-03-04T04:09Z
 urls:
-  reference: http://isorunN2O.kopflab.com/reference
-  article: http://isorunN2O.kopflab.com/articles
+  reference: https://isorunN2O.kopflab.com/reference
+  article: https://isorunN2O.kopflab.com/articles
 
