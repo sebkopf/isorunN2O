@@ -53,10 +53,10 @@ here](https://github.com/sebkopf/isorunN2O/tree/master/inst/shiny-apps/data_view
 
 For newer versions of this package (\>= 0.4.0), this functionality is
 mostly covered by the much broader graphical user interface of the
-[`isoviewer`](https://isoreader.isoverse.org) package although it does
-not yet recreate all of the original functionality of the N2O data
-viewer. We ask for patience while isoviewer is still in development, it
-will eventually provide all the original functionality and much more.
+[isoviewer](https://isoviewer.isoverse.org) package although it does not
+yet recreate all of the original functionality of the N2O data viewer.
+We ask for patience while isoviewer is still in development, it will
+eventually provide all the original functionality and much more.
 
 ![Screenshot of the Data
 Viewer](https://github.com/sebkopf/isorunN2O/blob/master/inst/shiny-apps/data_viewer/doc/data_overview.png?raw=true)

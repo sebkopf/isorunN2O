@@ -42,7 +42,7 @@ The package includes a tutorial that introduces most functionality and provides 
 
 Earlier versions of this package (up to 0.3.0) also include a browser based application for interactive N2O run monitoring. It can be launched with the function `run_data_viewer()`, additional information is [available here](https://github.com/sebkopf/isorunN2O/tree/master/inst/shiny-apps/data_viewer#n2o-data-viewer). 
 
-For newer versions of this package (>= 0.4.0), this functionality is mostly covered by the much broader graphical user interface of the [`isoviewer`](https://isoreader.isoverse.org) package although it does not yet recreate all of the original functionality of the N2O data viewer. We ask for patience while isoviewer is still in development, it will eventually provide all the original functionality and much more.
+For newer versions of this package (>= 0.4.0), this functionality is mostly covered by the much broader graphical user interface of the [isoviewer](https://isoviewer.isoverse.org) package although it does not yet recreate all of the original functionality of the N2O data viewer. We ask for patience while isoviewer is still in development, it will eventually provide all the original functionality and much more.
 
 ![Screenshot of the Data Viewer](https://github.com/sebkopf/isorunN2O/blob/master/inst/shiny-apps/data_viewer/doc/data_overview.png?raw=true)
 
