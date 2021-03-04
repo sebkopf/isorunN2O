@@ -20,6 +20,9 @@
 #' @export
 plot_overview <- function(data, ..., size = NULL, shape = NULL, text = NULL, color = category, panel = category) {
 
+  # deprecate
+  deprecate_for_switch_to_isoverse("plot_overview()", "isoprocessor::iso_plot_data()")
+
   # allow multiple y values (will be gathered if there is more than 1)
   ys <- lazyeval::lazy_dots(...)
 
@@ -131,6 +134,9 @@ plot_overview <- function(data, ..., size = NULL, shape = NULL, text = NULL, col
 make_interactive <- function(p = ggplot2:::last_plot(), tooltip = tooltip_default(),
                              theme = theme_bw(), plus = NULL) {
 
+  # deprecate
+  deprecate_for_switch_to_isoverse("make_interactive()", "plotly::ggplotly() directly")
+
   # default tooltips
   tooltip_default <- function() {
     if ( "text" %in% names(p$mapping))
@@ -154,6 +160,10 @@ make_interactive <- function(p = ggplot2:::last_plot(), tooltip = tooltip_defaul
 #'  for example: make_itext(name, d45 = round(d45, 2), ...)
 #' @export
 make_itext <- function(...) {
+
+  # deprecate
+  deprecate_for_switch_to_isoverse("make_itext()", "isoreader::iso_format")
+
   vals <- list(...)
   vars <- paste0(names(vals), ifelse(names(vals) != "", ": ", ""))
   br <- as.list(rep("<br>", length(vals) - 1))

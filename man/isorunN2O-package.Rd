@@ -7,8 +7,8 @@
 \title{isorunN2O: Process IRMS runs of N2O analyses.}
 \description{
 This package facilitates the reading, processing and visualization
-of N2O isotope data including drift correction, 17O correction and standards
-calibration.
+    of N2O isotope data including drift correction, 17O correction and standards
+    calibration.
 }
 \seealso{
 Useful links:

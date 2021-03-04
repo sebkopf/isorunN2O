@@ -4,8 +4,13 @@
 \alias{calculate_background}
 \title{Calculate background area}
 \usage{
-calculate_background(data, area, criteria = name \%in\% c("background",
-  "Background"), update_category = "background", quiet = FALSE)
+calculate_background(
+  data,
+  area,
+  criteria = name \%in\% c("background", "Background"),
+  update_category = "background",
+  quiet = FALSE
+)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}

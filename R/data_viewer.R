@@ -11,6 +11,9 @@
 #' @export
 run_data_viewer <- function(base_dir = ".", ...) {
 
+  # deprecate
+  deprecate_for_switch_to_isoverse("run_data_viewer()", "isoviewer::iso_start_viewer()")
+
   app_dir <- system.file("shiny-apps", "data_viewer", package = "isorunN2O")
   if (app_dir == "")
     stop("Could not find data viewer directory. Try re-installing `isorunN2O`.", call. = FALSE)

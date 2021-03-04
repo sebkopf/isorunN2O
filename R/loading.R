@@ -8,6 +8,10 @@
 #' @param ... parameters passed on to \code{\link{isoread}}
 #' @export
 load_run_folder <- function(folder, cache = folder, quiet = F, ...) {
+
+  # deprecate
+  deprecate_for_switch_to_isoverse("load_run_folder()", "isoreader::iso_read_continuous_flow()")
+
   if (!dir.exists(folder))
     stop("The provided data folder '", folder,
          "' does not seem to exist (current working directory: ", getwd(), ")")

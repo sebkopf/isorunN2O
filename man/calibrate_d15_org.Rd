@@ -4,9 +4,17 @@
 \alias{calibrate_d15_org}
 \title{Calibrate organic d15 values with the given standards}
 \usage{
-calibrate_d15_org(data, d15, area, volume, standards = c(`USGS-40` = -4.5,
-  `USGS-41` = 47.6), infer_ref_gas = TRUE, infer_bgrd = TRUE,
-  infer_oblank = TRUE, quiet = FALSE)
+calibrate_d15_org(
+  data,
+  d15,
+  area,
+  volume,
+  standards = c(`USGS-40` = -4.5, `USGS-41` = 47.6),
+  infer_ref_gas = TRUE,
+  infer_bgrd = TRUE,
+  infer_oblank = TRUE,
+  quiet = FALSE
+)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}

@@ -4,9 +4,19 @@
 \alias{evaluate_drift}
 \title{Evaluate drift}
 \usage{
-evaluate_drift(data, d45, d46, group = name, correct = FALSE,
+evaluate_drift(
+  data,
+  d45,
+  d46,
+  group = name,
+  correct = FALSE,
   correct_with = category \%in\% c("USGS-34", "IAEA-NO3", "N2O"),
-  plot = TRUE, quiet = FALSE, method = "lm", span = 0.75, ...)
+  plot = TRUE,
+  quiet = FALSE,
+  method = "lm",
+  span = 0.75,
+  ...
+)
 }
 \arguments{
 \item{data}{the data frame, must be from a single run because this should really be evaluated

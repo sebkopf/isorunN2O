@@ -4,8 +4,12 @@
 \alias{make_interactive}
 \title{Makes a ggplot interactive using ggplotly.}
 \usage{
-make_interactive(p = ggplot2:::last_plot(), tooltip = tooltip_default(),
-  theme = theme_bw(), plus = NULL)
+make_interactive(
+  p = ggplot2:::last_plot(),
+  tooltip = tooltip_default(),
+  theme = theme_bw(),
+  plus = NULL
+)
 }
 \arguments{
 \item{p}{the ggplot to make interactive, by default the last plot}

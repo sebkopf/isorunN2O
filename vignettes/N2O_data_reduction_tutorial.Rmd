@@ -2,35 +2,37 @@
 title: "N2O data reduction tutorial"
 author: "Sebastian Kopf"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+  html_document:
+    code_folding: show
+    df_print: paged
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+editor_options:
+  chunk_output_type: console
 vignette: >
   %\VignetteIndexEntry{N2O data reduction tutorial}
+  %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
 ---
 
-## Tutorial
+This tutorial introduces the **isorunN2O** packages and provides examples of how it works and can be used. Please install `isorunN2O` following the [instructions on GitHub](https://github.com/sebkopf/isorunN2O), the newest version of this tutorial can always be loaded up as a vignette directly in R by calling `vignette("N2O_data_reduction_tutorial")` in the command line.
 
-This tutorial introduces the **isorunN2O** packages and provides examples of how it works and can be used. Plese install `isorunN2O` following the [instructions on GitHub](https://github.com/sebkopf/isorunN2O), the newest version of this tutorial can always be loaded up as a vignette directly in R by calling `vignette("N2O_data_reduction_tutorial")` in the command line.
+# Loading test data
 
-#### Loading the package
+The package includes an example data set (`test_run`) to work with for testing and demonstration purposes. Because the original data files would be too big to include, it is stored as the cached compacted data set that the `iso_save()` command from the [**isoreader package**](https://isoreader.isoverse.org/) creates from the raw data files. When you run this on your own data sets, simply change the `root_folder` to point to where you keep all your data (absolute path or relative to your current working directory), e.g. `root_folder <- file.path("MAT", "results")` and the `run_folders` to all the run folders you want to read in (can be one or multiple). The first time you load your own data using [**isoreader**](https://isoreader.isoverse.org/) it may take a few minutes (speed it up using the `parallel = TRUE` parameter) but afterwards it will always be fast because it is already cached. The following data was read using isoreader version `r packageVersion("isoreader")`.
 
-To work with the `isorunN2O` package, you can now simply load it in any active R session using the command `library(isorunN2O)`. It automatically loads several packages used for working with data frames, plotting and interactive plots (type `?dplyr`, `?ggplot` or `?plotly` to access the help for these packages from within RStudio).
-
-```{r, message=FALSE, warning=FALSE}
-library(isorunN2O)
+```{r, message=FALSE}
+library(isoreader)
+root_folder <- system.file("extdata", package = "isorunN2O") 
+run_folders <- "test_run" # could be multiple, e.g. run_folders <- c("run1", "run2")
+iso_files <- iso_read_continuous_flow(run_folders, root = root_folder)
 ```
 
-#### Loading example data
-
-The package includes a sample data set (`test_run`) to work with for testing and demonstration purposes. Because the original data files would be too big to include, it is stored as the cached compacted data set that the `load_run_folder` command creates from the raw data files. When you run this on your own data sets, simply change the data_folder to point to where you keep your files, e.g. `data_folder <- file.path("MAT", "results", "my_data")` or look at the `?load_run_folder` help for more information.
-
-```{r}
-data_folder <- system.file("extdata", package = "isorunN2O") 
-iso_files <- load_run_folder(file.path(data_folder, "test_run"))
-```
-
-#### Raw data
+## Raw data
 
 The `iso_files` variable now holds all your raw data, you can look at the names of all the loaded files by running the following (here only the first 5 for brevity, also note that we're using the [`%>%` pipe operator](https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html) to pass output from one function to the next, which might look a little strange at first but makes it more readable further on):
 
@@ -38,29 +40,74 @@ The `iso_files` variable now holds all your raw data, you can look at the names 
 names(iso_files) %>% head(n=5) 
 ```
 
-You can use the file names to take a look at specific chromatograms (note that the sample data set only has the full chromatograms loaded for the first file). This is really part of the functionality in the `?isoread` package so if you'd like to explore the chromatograms more, I recommend looking at the `isoread` vignettes for additional information: `browseVignettes("isoread")`.
-
-```{r, message=FALSE, warning = FALSE, fig.width = 9, fig.height = 7}
-iso_files[["MAT25392080_P02E_run02_Conditioner-0000.dxf"]]$make_ggplot()
+```{r, install-isoprocessor, eval = FALSE, include=FALSE}
+# install isoprocessor from github
+if (!requireNamespace("devtools", quietly = TRUE)) 
+  install.packages("devtools")
+if (!requireNamespace("isoprocessor", quietly = TRUE))
+  devtools::install_github("isoverse/isoprocessor")
 ```
 
+You can use the file names to take a look at specific chromatograms using the functionality provided in the [**isoprocessor package**](https://isoprocessor.isoverse.org/) (version `r packageVersion("isoprocessor")`). 
 
-### Data processing step 1 (first look)
+```{r, message=FALSE, warning = FALSE, fig.width = 9, fig.height = 7}
+library(isoprocessor)
+iso_files$`MAT25392080_P02E_run02_Conditioner-0000.dxf` %>% 
+  iso_plot_continuous_flow_data(color = data, panel = NULL)
+```
 
-In the first step, we pull out the data tables from the raw data, parse the file names to put the different files into different categories, pull out only the N2O peak (no need for the references) and focus on the main columns we are interested in. Everything is chained together with the pipe `%>%` operator for better readability. Info messages form each function will provide feedback on what happened at each step.
+## Explore
+
+If you'd like to explore the chromatograms (or really any of the data extracted from the raw data files) more, you can visually explore some of the core functionality of [**isoreader**](https://isoreader.isoverse.org/) and [**isoprocessor**](https://isoprocessor.isoverse.org/) using the [**isoviewer**](https://isoviewer.isoverse.org/) (version `r packageVersion("isoprocessor")`) graphical user interface with the command below (use the `Close` button in the GUI to return to the interactive R session):
+
+```{r install-isoviewer, eval = FALSE, include=FALSE}
+# install isoviewr if not 
+if (!requireNamespace("devtools", quietly = TRUE)) 
+  install.packages("devtools")
+if (!requireNamespace("isoprocessor", quietly = TRUE))
+  devtools::install_github("isoverse/isoviewer")
+```
+
+```{r, eval=FALSE}
+isoviewer::iso_start_viewer()
+```
+
+# Processing
+
+Data processing makes use of generic data table and isotope functionality provided by the [**dplyr**](https://dplyr.tidyverse.org/), [**isoreader**](https://isoreader.isoverse.org/) and [**isoprocessor**](https://isoprocessor.isoverse.org/) packages as well as N2O specific tools implemented in the **isorunN2O** package. 
+
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(isoreader)
+library(isoprocessor)
+library(isorunN2O)
+```
+
+## Data processing step 1 (first look)
+
+In the first step, parse the file info from the sequence (take a look at what's available with `iso_get_file_info(iso_files)`), pull out the peak table from the iso files (with the file info), then focus only the N2O peak (no need for the references), and focus on the main columns we are interested in. Everything is chained together with the pipe `%>%` operator for better readability. 
 
 ```{r}
 df.raw <- iso_files %>%
-  # pull out the data summary from the raw isodat file:
-  get_isodat_data_tables() %>% 
-  # derive file categories:
-  parse_file_names() %>% 
-  # discard the reference peaks:
+  # extract all sample information (former parse_file_names)
+  iso_mutate_file_info(
+    folder = basename(dirname(file_path)),
+    date = file_datetime,
+    analysis = Analysis,
+    run_number = parse_integer(Row),
+    # category is the first part of the `Identifier 1`
+    category = extract_word(`Identifier 1`, include_underscore = TRUE, include_dash = TRUE),
+    # name is the full `Identifier 1` value
+    name = `Identifier 1`,
+    # valume information is stored in `Identifier 2`
+    volume = parse_number(`Identifier 2`)
+  ) %>% 
+  # aggregate peak table
+  iso_get_vendor_data_table(include_file_info = everything()) %>%
+  # select N2O peak
   select_N2O_peak( c(360, 370)) %>% 
-  # focus on the columns we care about:
-  rename(d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`, area = `Intensity All`) %>% 
-  # select which columns to keep:
-  select_columns(folder, date, analysis, run_number, category, name, volume, area, d45, d46) 
+  # select all relevant columns 
+  select_columns(folder:volume, area = `Intensity All`, d45 = `d 45N2O/44N2O`, d46 = `d 46N2O/44N2O`)
 ```
 
 Now to get a sense for what the data looks like, let's look at the first couple of rows. To look at the complete data frame, you can always call `View(df.raw)` or double click on the name in the *Environment* tab on the upper right. 
@@ -69,83 +116,115 @@ Now to get a sense for what the data looks like, let's look at the first couple 
 df.raw %>% head(n=5) 
 ```
 
-Additinally, `isorunN2O` provides a couple more convience functions for inspecting the data (together with the very helpful function `group_by` from the `dplyr` package). To look at the data in table format, you can use `?generate_data_table` (see help for details). Additional formatting options for data tables are provoided by the function `kable` from the knitr package, which we'll use here to get column style output.
+To check the `category` makeup of your run, make use of some handy [**dplyr**](https://dplyr.tidyverse.org/) functionality:
 
 ```{r}
-df.raw %>% group_by(category) %>% generate_data_table(area, d45, d46) %>% knitr::kable()
-df.raw %>% group_by(category, name) %>% generate_data_table(area, d45, d46, cutoff = 3)%>% knitr::kable()
+df.raw %>% group_by(category) %>% tally()
 ```
 
-For a visual first look at the data, you can use `?plot_overview`, which generates a [`ggplot`](http://ggplot2.org/):
+Additionally, [**isoprocessor**](https://isoprocessor.isoverse.org/) provides additional convenience functions for inspecting the data. Formatting options for data tables are provided by the function `kable` from the knitr package, which we'll use here to get column style output.
+
+```{r}
+df.raw %>% group_by(category) %>% 
+  # summarize area, d45 and d46 for each category
+  iso_summarize_data_table(area, d45, d46) %>%
+  # format for easier display
+  knitr::kable()
+```
+
+To further hone in on different data groups, simply modify the `group_by`:
+
+```{r}
+df.raw %>% group_by(category, name) %>% 
+  iso_generate_summary_table(area, d45, d46, cutoff = 3)%>% 
+  knitr::kable()
+```
+
+For a visual first look at the data, you can use versatile `?iso_plot_data` function, which generates a [`ggplot`](https://ggplot2.tidyverse.org/):
 
 ```{r first_look_at_data, fig.width = 9, fig.height = 9}
-df.raw %>% plot_overview(d45)
+library(ggplot2)
+df.raw %>% iso_plot_data(
+  x = run_number, y = d45, points = TRUE,
+  # shape = 21 with fill makes data points with black borders
+  shape = 21, fill = category, 
+  panel = category ~ .
+)
 ```
 
-or a little bit more elaborate specifiying in more detail how to color and panel the overview plot:
+or a little bit more elaborate specifying in more detail how to color/fill and panel the overview plot:
 
 ```{r first_look_more_details, fig.width = 9, fig.height = 7}
-df.raw %>% plot_overview(
-  d45, size = area, 
-  color = ifelse(category %in% c("IAEA-NO3", "USGS-34"), name, category), 
-  panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")))
+df.raw %>% iso_plot_data(
+  x = run_number, y = d45, points = TRUE,
+  size = area,
+  shape = 21, fill = c(type = ifelse(category %in% c("IAEA-NO3", "USGS-34"), name, category)), 
+  panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")) ~ .
+)
 ```
 
 or as an interactive plot (mouse-over information and zooming), which is a little easier for data exploration (`make_interactive()` makes the last plot interactive by default):
 
-```{r, cache = FALSE, fig.width = 9, fig.height = 7}
-make_interactive() 
+```{r, cache = FALSE, fig.width = 9, fig.height = 7, message=FALSE}
+library(plotly)
+ggplotly(dynamicTicks = TRUE)
 ```
 
+## Data processing step 2 (continued)
 
-### Data processing step 2 (continued)
+From the first look it is clear that there are couple of things we need to consider, there is one sample that was marked as questionable during injection (#68) which we'd like to exclude for now, there were also a couple of samples that were controls rather than standards and should go into their own category. Lastly, it appears there is some drift so we will want to evaluate that.
 
-From the first look it is clear that there are couple of things we need to consider, there is one sample that was marked as questionable during injection (#68) which we'd like to exclude for now, there were also a couple of samples that were controls rather than standards and should go into their own category, and while we're at it we'll also identify the blanks. Lastly, it appears there is some drift so we will want to evaluate that.
-
-#### Categories
+### Categories
 
 ```{r cat_assignments}
 df.cat <- df.raw %>% 
-  change_category(name %in% c("IAEA-NO3 37 uM ctrl", "USGS-34 37 uM ctrl"), "control") %>%
   change_category(run_number == 68, "excluded") %>%
-  change_category(name == "LNSW Blank", "blank")
+  change_category(name %in% c("IAEA-NO3 37 uM ctrl", "USGS-34 37 uM ctrl"), "control")
 ```
 
-#### Drift correction
+### Drift correction
 
 The `evaluate_drift` function provides a number of different strategies for evaluating drift using different correction methods, here we're trying a polynomial fit (`method = "loess"`) and are correcting with the standards as well as N2O. We also want to see a summary plot of the drift using `plot = TRUE` (the default), which will plot the drift polynomials on top of the original data (normalized to average isotope values in each group) and the residuals after applying the correction. For details look at the `?evaluate_drift` help. The drift correction stores the drift corrected values in `d45.drift` and `d46.drift`.
 
 ```{r drift_correction, fig.width = 9, fig.height = 7}
 df.drift <- df.cat %>% 
-  evaluate_drift(d45, d46, correct = TRUE, plot = TRUE,
-                correct_with = category %in% c("USGS-34", "IAEA-NO3", "N2O"),
-                method = "loess")
+  evaluate_drift(
+    d45, d46, correct = TRUE, plot = TRUE,
+    correct_with = category %in% c("USGS-34", "IAEA-NO3", "N2O"),
+    method = "loess"
+  )
 ```
 
 Let's take a quick look how we're doing after drift correction:
 
 ```{r data_overview_after_drift_correction, fig.width = 9, fig.height = 7}
-df.drift %>% plot_overview(d45.drift, panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")))
+df.drift %>% 
+  iso_plot_data(
+    x = run_number, y = d45, points = TRUE,
+    shape = 21, fill = category,
+    panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")) ~ .
+  )
 ```
 
 
-### Data processing step 3 (continued)
+## Data processing step 3 (continued)
 
 Now that we're drift corrected, time to switch to $\delta^{15}N$ and $\delta^{18}O$ space and calibrate against our standards.
 
-#### O17 correction
+### O17 correction
 
 We're doing the O17 correction here (instead of before the drift) but it is a matter of discussion whether drift correction or O17 correction should be applied first. The O17 correction introduces new columns `d15.raw` and `d18.raw`.
 
 ```{r}
 df.O17 <- df.drift %>%
   correct_N2O_for_17O(d45.drift, d46.drift) %>% 
-  select_columns(-d45, -d45.drift, -d46, -d46.drift) # no longer needd, remove these columns
+  # no longer need these columns now that we're in d15 and d18 space
+  select_columns(-d45, -d45.drift, -d46, -d46.drift) 
 ```
 
-#### Calibration
+### Calibration
 
-Last steps are caculating the background (see `?calculate_background`), calculating concentrations (see `?calculate_concentrations`) and then calibrating $\delta^{15}N$ and $\delta^{18}O$ (see `?calibrate_d15` and `?calibrate_d18`). Note that the background calculation is not currently used for calibration since only multi-point calibration is implemented. 
+Last steps are calculating the background (see `?calculate_background`), calculating concentrations (see `?calculate_concentrations`) and then calibrating $\delta^{15}N$ and $\delta^{18}O$ (see `?calibrate_d15` and `?calibrate_d18`). Note that the background calculation is not currently used for calibration since only multi-point calibration is implemented but it's a good check to see its value. 
 
 ```{r}
 df.cal <- df.O17 %>% 
@@ -156,59 +235,81 @@ df.cal <- df.O17 %>%
   calibrate_d18(d18.raw, cell_volume = 1.5, standards = c(`USGS-34` = -27.93, `IAEA-NO3` = 25.61))
 ```
 
-### Summary
+## Summary
 
-At the end of the data processing, there are a couple of ways to summarize the data, including the `generate_data_table` introduced earlier (here used to compare the raw vs. calibrated values with different groupings), but also `generate_parameter_table`, which summarizes all the parameters recorded from the data processing calls:
+At the end of the data processing, there are a couple of ways to summarize the data, including the `iso_summmarize_data_table()` introduced earlier (here used to compare the raw vs. calibrated values with different groupings), but also `generate_parameter_table`, which summarizes all the parameters recorded from the data processing calls:
 
 ```{r}
 df.cal %>% group_by(category) %>% 
-  generate_data_table(cutoff = 3, d15.raw, d15.cal, d18.raw, d18.cal) %>% knitr::kable() 
+  iso_summarize_data_table(cutoff = 3, d15.raw, d15.cal, d18.raw, d18.cal) %>% 
+  arrange(desc(n)) %>%
+  knitr::kable() 
+
 df.cal %>% 
-  generate_parameter_table() %>% knitr::kable() 
+  generate_parameter_table() %>% 
+  knitr::kable() 
 ```
 
-And of course visually, e.g. in an interactive plot with additional mouseover info (`text = make_itext...`):
+And of course visually, e.g. in an interactive plot with additional mouseover info using the `label` parameter and `iso_format` function:
 
 ```{r, cache=FALSE, fig.width = 9, fig.height = 7}
-df.cal %>% plot_overview(
-  d15.cal, size = amount,
-  text = make_itext(name, d15 = round(d15.cal, 2), d18 = round(d18.cal, 2), amount = round(amount,3)),
-  color = ifelse(category %in% c("IAEA-NO3", "USGS-34"), name, category), 
-  panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34"))
+df.cal %>% 
+  iso_plot_data(
+    x = run_number, y = d15.cal, points = TRUE,
+    size = amount,
+    shape = 21, fill = c(type = ifelse(category %in% c("IAEA-NO3", "USGS-34"), name, category)),
+    panel = factor(category, levels = c("N2O", "IAEA-NO3", "USGS-34")) ~ .,
+    label = c(info = iso_format(
+      NULL = name,
+      d15 = round(d15.cal, 2),
+      d18 = round(d18.cal, 2),
+      amount = round(amount, 3)
+    ))
   ) %>%
-  make_interactive()
+  ggplotly(dynamicTicks = TRUE, tooltip = c("fill", "label"))
 ```
 
-And some simpler single data plots (using `filter` from the `ddply` package) to look specifically at the samples and DPR control.
+And some simpler single data plots (using `filter` from the [**dplyr**](https://dplyr.tidyverse.org/) pakcage) to look specifically at the samples and DPR control.
 
-```{r single_data_plots, fig.width = 9, fig.height = 7}
-df.cal %>% filter(category %in% c("P02E", "DPR")) %>% 
-  plot_overview(d15.cal, d18.cal, color = paste(category, panel)) %>% 
-  make_interactive() 
+```{r single_data_plots, fig.width = 9, fig.height = 7, warning=FALSE}
+df.cal %>% 
+  filter(category %in% c("P02E", "DPR")) %>% 
+  iso_plot_data(
+    x = run_number, y = c(d15.cal, d18.cal), points = TRUE,
+    shape = 21, fill = c(info = paste(category, panel))
+  ) %>% 
+  ggplotly(dynamicTicks = TRUE)
 ```
 
 Additional customization is also possible using `ggplot` functionality, for example can use the `shape` parameter for symbol differentiation, and to visualize all the standards' key values in separate panels, can make use of `facet_wrap`:
 
 ```{r standards, fig.width = 10, fig.height = 7}
-(df.cal %>% filter(category %in% c("IAEA-NO3", "USGS-34")) %>% 
-  plot_overview(
-    d15.cal, d18.cal, amount, color = name, shape = name, 
-    text = make_itext(name, `#` = run_number, 
-                      d15 = round(d15.cal, 2), 
-                      d18 = round(d18.cal, 2))) + 
-  facet_wrap(panel ~ category, scales = "free", ncol = 2)) %>% 
-  make_interactive()
+plot <-
+  df.cal %>% 
+  filter(category %in% c("IAEA-NO3", "USGS-34")) %>%
+  iso_plot_data(
+    x = run_number, y = c(amount, d15.cal, d18.cal), points = TRUE,
+    shape = name, fill = name, # use multiple shapes, define with scale_shape_manual
+    label = c(info = iso_format(
+      `#` = run_number,
+      d15 = round(d15.cal, 2),
+      d18 = round(d18.cal, 2)
+    ))
+  ) +
+  facet_wrap(panel ~ category, scales = "free", ncol = 2) +
+  scale_shape_manual(values = 21:25)
+
+ggplotly(p = plot, dynamicTicks = TRUE, tooltip = c("fill", "label"))
 ```
 
+## Export data
 
-### Export data
-
-At any point during the process, if you like to export data as excel, this is easy with the `openxlsx` package (here using a couple of filter options in `select` to skip parameters and raw values, and using `arrange` to sort the data):
+At any point during the process, if you like to export data as excel, this is easy with `iso_export_data_to_excel` (here using a couple of filter options in `select` to skip parameters and raw values, and using `arrange` to sort the data):
 
 ```{r}
 df.cal %>% 
   select(-starts_with("p."), -ends_with(".raw"), -ends_with(".drift"), d15 = d15.cal, d18 = d18.cal) %>%
   arrange(category, name) %>%
-  openxlsx::write.xlsx(file = "export.xlsx")
+  iso_export_data_to_excel(filepath = "export.xlsx")
 ```
 
