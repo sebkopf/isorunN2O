@@ -23,7 +23,10 @@ cache/*
 temp/*
 
 # Ignore raw test data
-raw_data/*
+/**/raw_data/*
+
+# Ignore cached test data
+/**/cache/*
 
 # Ignore exports
 *.xlsx
