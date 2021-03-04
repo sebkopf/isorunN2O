@@ -122,7 +122,7 @@ To check the `category` makeup of your run, make use of some handy [**dplyr**](h
 df.raw %>% group_by(category) %>% tally()
 ```
 
-Additionally, [**isoprocessor**](https://isoprocessor.isoverse.org/) provides additional convenience functions for inspecting the data. Formatting options for data tables are provided by the function `kable` from the knitr package, which we'll use here to get column style output.
+Additionally, [**isoprocessor**](https://isoprocessor.isoverse.org/) provides convenience functions for inspecting the data including `iso_summarize_data_table()`. Formatting options for data tables are provided by the function `kable` from the knitr package, which we'll use here to get column style output.
 
 ```{r}
 df.raw %>% group_by(category) %>% 
@@ -136,7 +136,7 @@ To further hone in on different data groups, simply modify the `group_by`:
 
 ```{r}
 df.raw %>% group_by(category, name) %>% 
-  iso_generate_summary_table(area, d45, d46, cutoff = 3)%>% 
+  iso_summarize_data_table(area, d45, d46, cutoff = 3)%>% 
   knitr::kable()
 ```
 
@@ -283,7 +283,7 @@ df.cal %>%
 
 Additional customization is also possible using `ggplot` functionality, for example can use the `shape` parameter for symbol differentiation, and to visualize all the standards' key values in separate panels, can make use of `facet_wrap`:
 
-```{r standards, fig.width = 10, fig.height = 7}
+```{r standards, fig.width = 10, fig.height = 7, warning=FALSE}
 plot <-
   df.cal %>% 
   filter(category %in% c("IAEA-NO3", "USGS-34")) %>%
