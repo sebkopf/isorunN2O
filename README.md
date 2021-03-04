@@ -5,6 +5,7 @@
 
 [![Git\_Hub\_Version](https://img.shields.io/badge/GitHub-0.4.0-orange.svg?style=flat-square)](https://github.com/sebkopf/isorunN2O/commits)
 [![Documentation](https://img.shields.io/badge/docs-online-green.svg)](https://isorunn2o.kopflab.org/)
+[![Build Status](https://travis-ci.org/sebkopf/isorunN2O.svg?branch=master)](https://travis-ci.org/sebkopf/isorunN2O)
 
 This package facilitates the reading, processing and visualization of
 N2O isotope data including drift correction, 17O correction and
