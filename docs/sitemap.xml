@@ -1,102 +1,102 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>http://isorunN2O.kopflab.com/index.html</loc>
+    <loc>https://isorunN2O.kopflab.com/index.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/calculate_background.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/calculate_background.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/calculate_concentrations.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/calculate_concentrations.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/calculate_oxidation_blank.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/calculate_oxidation_blank.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/calibrate_d15.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/calibrate_d15.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/calibrate_d15_org.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/calibrate_d15_org.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/calibrate_d18.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/calibrate_d18.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/change_category.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/change_category.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/correct_N2O_for_17O.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/correct_N2O_for_17O.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/default_cache_file.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/default_cache_file.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/evaluate_drift.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/evaluate_drift.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/generate_data_table.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/generate_data_table.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/generate_parameter_table.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/generate_parameter_table.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/get_calib_coef.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/get_calib_coef.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/get_isodat_data_tables.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/get_isodat_data_tables.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/isorunN2O-package.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/isorunN2O-package.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/load_cache.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/load_cache.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/load_run_folder.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/load_run_folder.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/make_interactive.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/make_interactive.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/make_itext.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/make_itext.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/parse_file_names.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/parse_file_names.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/plot_overview.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/plot_overview.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/round_to_err.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/round_to_err.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/run_d15_calibration.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/run_d15_calibration.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/run_data_viewer.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/run_data_viewer.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/run_data_viewer_dev.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/run_data_viewer_dev.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/save_cache.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/save_cache.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/select_N2O_peak.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/select_N2O_peak.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/select_columns.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/select_columns.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/set_background.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/set_background.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/set_oxidation_blank.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/set_oxidation_blank.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/reference/set_run_size.html</loc>
+    <loc>https://isorunN2O.kopflab.com/reference/set_run_size.html</loc>
   </url>
   <url>
-    <loc>http://isorunN2O.kopflab.com/articles/N2O_data_reduction_tutorial.html</loc>
+    <loc>https://isorunN2O.kopflab.com/articles/N2O_data_reduction_tutorial.html</loc>
   </url>
 </urlset>
