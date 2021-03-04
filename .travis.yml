@@ -3,9 +3,8 @@ sudo: required
 warnings_are_errors: false
 
 r_github_packages:
+  - isoverse/isoprocessor
   - jimhester/covr
-  - sebkopf/isotopia
-  - sebkopf/isoread
   - ropensci/plotly
 
 after_success:
