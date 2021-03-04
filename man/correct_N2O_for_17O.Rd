@@ -4,9 +4,17 @@
 \alias{correct_N2O_for_17O}
 \title{Correct N2O data for O17}
 \usage{
-correct_N2O_for_17O(data, d45, d46, ref_17R = 0.0003799,
-  ref_18R = 0.0020052, ref_15R_avg = 0.0036782, lambda = 0.52,
-  d_max = 1000, quiet = FALSE)
+correct_N2O_for_17O(
+  data,
+  d45,
+  d46,
+  ref_17R = 0.0003799,
+  ref_18R = 0.0020052,
+  ref_15R_avg = 0.0036782,
+  lambda = 0.52,
+  d_max = 1000,
+  quiet = FALSE
+)
 }
 \arguments{
 \item{data}{the data frame}

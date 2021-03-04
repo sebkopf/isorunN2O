@@ -5,8 +5,11 @@
 \title{for development of data viewer
 not exported to namespace but helpful for active development of the shiny app}
 \usage{
-run_data_viewer_dev(base_dir = ".", app_dir = file.path("inst",
-  "shiny-apps", "data_viewer"), ...)
+run_data_viewer_dev(
+  base_dir = ".",
+  app_dir = file.path("inst", "shiny-apps", "data_viewer"),
+  ...
+)
 }
 \description{
 for development of data viewer

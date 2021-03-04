@@ -4,8 +4,14 @@
 \alias{calculate_oxidation_blank}
 \title{Calculate oxidation blank area/volume}
 \usage{
-calculate_oxidation_blank(data, area, volume, criteria = grepl("POR Blank",
-  name), update_category = "oxidation blank", quiet = FALSE)
+calculate_oxidation_blank(
+  data,
+  area,
+  volume,
+  criteria = grepl("POR Blank", name),
+  update_category = "oxidation blank",
+  quiet = FALSE
+)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}

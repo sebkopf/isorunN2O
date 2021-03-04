@@ -5,8 +5,15 @@
 \title{runs the d15 calibration internally
 called from calibrate_d15 and calibrate_d15_org}
 \usage{
-run_d15_calibration(data, standards, organic, infer_ref_gas = TRUE,
-  infer_bgrd = TRUE, infer_oblank = TRUE, quiet = FALSE)
+run_d15_calibration(
+  data,
+  standards,
+  organic,
+  infer_ref_gas = TRUE,
+  infer_bgrd = TRUE,
+  infer_oblank = TRUE,
+  quiet = FALSE
+)
 }
 \description{
 runs the d15 calibration internally

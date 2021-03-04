@@ -54,12 +54,14 @@ correct_N2O_for_17O <- function (data, d45, d46, ref_17R = 0.0003799, ref_18R = 
     return(d45 + e * (d45 - d17))
   }
 
-  fields <- list(
-    .d45 = interp(~var, var = substitute(d45)),
-    .d46 = interp(~var, var = substitute(d46)))
-
-  df <- data %>% mutate_(.dots = fields) %>%
+  d45_expr <- rlang::enexpr(d45)
+  d46_expr <- rlang::enexpr(d46)
+  df <- data %>%
     mutate(
+      .d45_orig = !!d45_expr,
+      .d46_orig = !!d46_expr,
+      .d45 = isoreader::iso_strip_units(.d45_orig),
+      .d46 = isoreader::iso_strip_units(.d46_orig),
       .d18 = 1000 * calc_d18 (.d45/1000, .d46/1000),
       p.17Ocor = paste0("scaling=", lambda, "; ref 17R=", ref_17R, ", 18R=", ref_18R, ", 15N=", ref_15R_avg),
       d15.raw = 1000 * calc_d15 (.d18/1000, .d45/1000),
@@ -75,7 +77,15 @@ correct_N2O_for_17O <- function (data, d45, d46, ref_17R = 0.0003799, ref_18R = 
       nrow(df), mean(df$.d45), mean(df$d15.raw), mean(df$.d46), mean(df$d18.raw), k46, k45, k17, k45x45, k45x17, k17x17) %>% message()
   }
 
-  df %>% select(-.d45, -.d46, -.d18) %>% return()
+  # units
+  d45_units <- isoreader::iso_get_units(df$.d45_orig)
+  d46_units <- isoreader::iso_get_units(df$.d46_orig)
+  if (!is.na(d45_units) && !is.na(d46_units) && identical(d45_units, d46_units)) {
+    # FIXME: should we always do permil conversion here? and/or make an earlier check that if units are provided, d45 and d46 have the same?
+    df$d15.raw <- iso_double_with_units(df$d15.raw, d45_units)
+    df$d18.raw <- iso_double_with_units(df$d18.raw, d45_units)
+  }
+  df %>% select(-.d45, -.d46, -.d45_orig, -.d46_orig, -.d18) %>% return()
 }
 
 

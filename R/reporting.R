@@ -6,6 +6,9 @@
 #' @export
 generate_data_table <- function(data, ..., cutoff = 1, .dots = c()) {
 
+  # deprecate
+  deprecate_for_switch_to_isoverse("generate_data_table()", "isoprocessor::iso_summarize_data_table()")
+
   # safety checks
   include <- c(lazyeval::lazy_dots(...), .dots)
   if (length(include) == 0) stop("No data columns provided, please select at least 1")

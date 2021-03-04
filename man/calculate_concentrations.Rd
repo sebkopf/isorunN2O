@@ -4,9 +4,15 @@
 \alias{calculate_concentrations}
 \title{Calculate the concentrations of the source samples}
 \usage{
-calculate_concentrations(data, area, volume, dilution = 1,
-  conc_pattern = "(\\\\d+)uM", standards = category \%in\% c("USGS-34",
-  "IAEA-NO3"), quiet = FALSE)
+calculate_concentrations(
+  data,
+  area,
+  volume,
+  dilution = 1,
+  conc_pattern = "(\\\\d+)uM",
+  standards = category \%in\% c("USGS-34", "IAEA-NO3"),
+  quiet = FALSE
+)
 }
 \arguments{
 \item{data}{(can be a grouped_by data set)}

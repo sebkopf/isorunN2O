@@ -26,14 +26,20 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
   if (missing(d46)) stop("please specify the columm that holds the d46 data")
 
   # prepare data frame for correction model
-  fields <- list(
-    x = ~run_number,
-    .d45 = interp(~var, var = substitute(d45)),
-    .d46 = interp(~var, var = substitute(d46)),
-    .included = interp(~var, var = substitute(correct_with)),
-    .group = interp(~var, var = substitute(group)))
-
-  data <- data %>% mutate_(.dots = fields)
+  d45_expr <- rlang::enexpr(d45)
+  d46_expr <- rlang::enexpr(d46)
+  correct_with_expr <- rlang::enexpr(correct_with)
+  group_expr <- rlang::enexpr(group)
+  data <- data %>%
+    mutate(
+      x = run_number,
+      .d45_orig = !!d45_expr,
+      .d46_orig = !!d46_expr,
+      .d45 = isoreader::iso_strip_units(.d45_orig),
+      .d46 = isoreader::iso_strip_units(.d46_orig),
+      .included = !!correct_with_expr,
+      ..group = !!group_expr
+    )
 
   # run using do in case there is a grouping
   df <-
@@ -42,13 +48,13 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
     # included
     mdf <-
       filter(., .included) %>%
-      group_by(.group) %>%
+      group_by(..group) %>%
       mutate(d45 = .d45 - mean(.d45), d46 = .d46 - mean(.d46)) %>%
       ungroup()
 
     # group info
     grps_text <- ""
-    if (!is.null(groups(data))) {
+    if (length(groups(data)) > 0) {
       grps <- groups(data) %>% as.character() %>% sapply(function(i) mdf[[i]][1])
       grps_text <- paste0(names(grps), " = ", grps) %>% paste(collapse = ", ")
     }
@@ -84,7 +90,7 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
       mdf <-
         left_join(mdf, data.drift[c("run_number", "d45.drift", "d46.drift")],
                   by = "run_number") %>%
-        group_by(.group) %>%
+        group_by(..group) %>%
         mutate(
           `d45 corrected` = d45.drift - mean(d45.drift),
           `d46 corrected` = d46.drift - mean(d46.drift)
@@ -99,9 +105,9 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
       method_args <- list(...)
       (mdf %>% gather(panel, y, d45, d46, `d45 corrected`, `d46 corrected`) %>%
         ggplot() + aes(x, y) +
-        stat_smooth(aes(color = .group, fill = .group), method = method, se = F) +
-        stat_smooth(method = method, span = span, method.args=method_args, se = T, size = 1.5, color = "black") +
-        geom_point(aes(color = .group), size = 3) +
+        stat_smooth(aes(color = ..group, fill = ..group), method = method, formula = y ~ x, se = F) +
+        stat_smooth(method = method, span = span, method.args=method_args, formula = y ~ x, se = T, size = 1.5, color = "black") +
+        geom_point(aes(color = ..group), size = 3) +
         facet_wrap(~panel, ncol = 2, scales = "free_y") +
         theme_bw() + theme(legend.position = "left") +
         labs(x = "Run #", color = "", fill = "", y = "deviation from mean in each grouping [permil]")
@@ -111,7 +117,7 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
              data.frame(residuals = m46$residuals, fitted = m46$fitted, panel = "d46 residual vs. fitted")) %>%
         ggplot() +
         aes(fitted, residuals) + geom_point() +
-        stat_smooth(method = "loess", color = "red", se = F) +
+        stat_smooth(method = "loess", formula = y ~ x, color = "red", se = F) +
         facet_wrap(~panel, ncol = 1, scales = "free") + theme_bw()
       ) -> p2
 
@@ -125,17 +131,21 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
     # assign data frame
     if (correct) {
       out <- data.drift
+      d45_units <- isoreader::iso_get_units(out$.d45_orig)
+      d46_units <- isoreader::iso_get_units(out$.d46_orig)
+      if (!is.na(d45_units)) out$d45.drift <- iso_double_with_units(out$d45.drift, d45_units)
+      if (!is.na(d46_units)) out$d46.drift <- iso_double_with_units(out$d46.drift, d46_units)
     } else {
-      out <- mutate(., p.drift = "none", d45.drift = .d45, d46.drift = .d46)
+      out <- mutate(., p.drift = "none", d45.drift = .d45_orig, d46.drift = .d46_orig)
     }
 
     # info messages
     if (!quiet & correct) {
 
-      grp_sum <- filter(out, .included) %>% group_by(.group) %>%
+      grp_sum <- filter(out, .included) %>% group_by(..group) %>%
         summarize(d45.sd = sd(.d45), d46.sd = sd(.d46), d45.drift.sd = sd(d45.drift), d46.drift.sd = sd(d46.drift)) %>%
-        mutate(before = paste0(round(d45.sd, 2), "/", round(d46.sd, 2), " (", .group, ")"),
-               after = paste0(round(d45.drift.sd, 2), "/", round(d46.drift.sd, 2), " (", .group, ")"))
+        mutate(before = paste0(round(d45.sd, 2), "/", round(d46.sd, 2), " (", ..group, ")"),
+               after = paste0(round(d45.drift.sd, 2), "/", round(d46.drift.sd, 2), " (", ..group, ")"))
 
       if (grps_text != "")
         grps_text <- paste0("\n      group: ", grps_text)
@@ -158,7 +168,7 @@ evaluate_drift <- function(data, d45, d46, group = name, correct = FALSE,
     out
   })
 
-  df %>% select(-x, -.d45, -.d46, -.included, -.group) %>% return()
+  df %>% select(-x, -.d45, -.d46, -.d45_orig, -.d46_orig, -.included, -..group) %>% return()
 }
 
 

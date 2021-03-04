@@ -17,12 +17,14 @@ calculate_background <- function(data, area,
                                  update_category = "background", quiet = FALSE) {
 
   if (missing(area)) stop("please specify the column that holds the peak area")
+  criteria_quo <- rlang::enquo(criteria)
+  area_expr <- rlang::enexpr(area)
   if (!is.null(update_category))
-    data <- do.call(change_category, list(data, substitute(criteria), update_category))
+    data <- change_category(data, !!criteria_quo, update_category)
 
   # calculate background (preserves group_by during the mutate)
-  fields <- list(p.bgrd = interp(~mean(x[crit], na.rm = T), x = substitute(area), crit = substitute(criteria)))
-  df <- data %>% mutate_(.dots = fields) %>%
+  df <- data %>%
+    mutate(p.bgrd = mean(isoreader::iso_strip_units(!!area_expr)[!!criteria_quo]), na.rm = TRUE) %>%
     # make sure if it's not-a-number to switch to NA
     mutate(p.bgrd = ifelse(!is.nan(p.bgrd[1]), p.bgrd, NA_real_))
 
@@ -33,7 +35,7 @@ calculate_background <- function(data, area,
       # group info
       sdf <- .
       grps_text <- ""
-      if (!is.null(groups(data))) {
+      if (length(groups(data)) > 0) {
         grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
         grps_text <- paste0(" (for ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "), ")")
       }
@@ -45,7 +47,7 @@ calculate_background <- function(data, area,
         sprintf("INFO: bacterial background identified and area stored in parameter column 'p.bgrd': %.3f%s",
                 sdf$p.bgrd[1], grps_text) %>% message()
       }
-      data_frame()
+      dplyr::tibble()
     })
   }
 
@@ -139,7 +141,7 @@ calculate_oxidation_blank <- function(data, area, volume,
         sprintf("INFO: oxidation blank identified and area/volume ratio stored in parameter column 'p.oblank': %.3f%s",
                 sdf$p.oblank[1], grps_text) %>% message()
       }
-      data_frame()
+      dplyr::tibble()
     })
   }
 
@@ -221,30 +223,36 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
                                      standards = category %in% c("USGS-34", "IAEA-NO3"),
                                      quiet = FALSE) {
 
-  if (is.null(data$name)) stop("need to have sample names, please parse_file_names first")
-  if (is.null(data$category)) stop("need to have categories, please parse_file_names first")
-  if (is.null(data$analysis)) stop("need to have analysis, please parse_file_names first")
-  if (missing(area)) stop("please specify the column that holds the peak area")
-  if (missing(volume)) stop("please specify the column that holds the injected volume")
+  area_expr <- rlang::enexpr(area)
+  volume_expr <- rlang::enexpr(volume)
+  dilution_expr <- rlang::enexpr(dilution)
+  standards_expr <- rlang::enexpr(standards)
 
-  fields <- list(
-    `.V` = interp(~var, var = substitute(volume)),
-    `.A` = interp(~var, var = substitute(area)),
-    `.dilution` = interp(~ifelse(is.na(var), 1, var), var = substitute(dilution)))
-  stds_filter <- list(interp(~exp, exp = substitute(standards)))
+  if (is.null(data$name)) stop("need to have sample names, please parse_file_names first", call. = FALSE)
+  if (is.null(data$category)) stop("need to have categories, please parse_file_names first", call. = FALSE)
+  if (is.null(data$analysis)) stop("need to have analysis, please parse_file_names first", call. = FALSE)
+  if (rlang::is_missing(area_expr)) stop("please specify the column that holds the peak area", call. = FALSE)
+  if (rlang::is_missing(volume_expr)) stop("please specify the column that holds the injected volume", call. = FALSE)
 
   data <- data %>% do({
     # calculate yield
-    df <- mutate_(., .dots = fields)
+    df <- mutate(
+      .,
+      .V = iso_strip_units(!!volume_expr),
+      .A = iso_strip_units(!!area_expr),
+      .dilution = dplyr::if_else(is.na(!!dilution_expr), NA_real_, !!dilution_expr)
+    )
+
     stds <-
-      df %>% filter_(.dots = stds_filter) %>%
+      df %>%
+      dplyr::filter(!!standards_expr) %>%
       extract(name, "conc", conc_pattern, convert = T, remove = F) %>%
       mutate( run_size = conc * .V / .dilution,
               yield = .A / run_size) %>%
-      filter(!is.na(conc))
+      dplyr::filter(!is.na(conc))
 
-    if (nrow(stds) == 0)
-      stop("It seems no concentration standards were found. Please check that the parameters 'conc_pattern' and 'standards' are set correctly for your naming convention.", call. = F)
+      if (nrow(stds) == 0)
+        stop("It seems no concentration standards were found. Please check that the parameters 'conc_pattern' and 'standards' are set correctly for your naming convention.", call. = F)
 
     # derived parameters
     yield <- mean(stds$yield)
@@ -265,7 +273,7 @@ calculate_concentrations <- function(data, area, volume, dilution = 1,
           "INFO: NOx concentrations and injection amounts (new columns 'conc' and 'amount') calculated from %s standards",
           "\n      Parameter columns mass spec signal 'p.yield' (%.3f) and effective 'p.run_size' (%.2f) added."),
         (stds %>% group_by(conc) %>%
-           summarize(label = paste0(conc[1], "uM (", n(), "x)")) %>% ungroup() %>%
+           summarize(label = paste0(conc[1], "uM (", dplyr::n(), "x)")) %>% ungroup() %>%
            arrange(conc))$label %>% paste(collapse = " & "),
         yield, run_size) %>% message()
     }
@@ -310,18 +318,20 @@ calibrate_d15 <- function(data, d15, area = mean(area[category %in% names(standa
   if (missing(d15)) stop("please specify the column that holds the d15 values to calibrate", call. = FALSE)
   if (length(standards) == 1) stop("sorry, single point correction is not implemented yet") #FIXME
 
-  fields <- list(
-    .d15 = interp(~var, var = lazy(d15)),
-    .A = interp(~var, var = lazy(area))
-  )
+  d15_expr <- rlang::enexpr(d15)
+  area_expr <- rlang::enexpr(area)
 
   # run calibration
   data %>%
-    mutate_(.dots = fields) %>%
+    mutate(
+      .d15_orig = !!d15_expr,
+      .d15 = isoreader::iso_strip_units(.d15_orig),
+      .A = isoreader::iso_strip_units(!!area_expr)
+    ) %>%
     run_d15_calibration(
       standards = standards, organic = FALSE, quiet = quiet,
       infer_ref_gas = infer_ref_gas, infer_bgrd = infer_bgrd) %>%
-    select(-.d15, -.A)
+    select(-.d15, -.d15_orig, -.A)
 }
 
 #' Calibrate organic d15 values with the given standards
@@ -348,19 +358,22 @@ calibrate_d15_org <- function(
   if (missing(area)) stop("please specify the column that holds the area values", call. = FALSE)
   if (missing(volume)) stop("please specify the column that holds the volume values", call. = FALSE)
 
-  fields <- list(
-    .d15 = interp(~var, var = lazy(d15)),
-    .A = interp(~var, var = lazy(area)),
-    .V = interp(~as.numeric(var), var = lazy(volume))
-  )
+  d15_expr <- rlang::enexpr(d15)
+  area_expr <- rlang::enexpr(area)
+  volume_expr <- rlang::enexpr(volume)
 
   # run calibration
   data %>%
-    mutate_(.dots = fields) %>%
+    mutate(
+      .d15_orig = !!d15_expr,
+      .d15 = isoreader::iso_strip_units(.d15_orig),
+      .A = isoreader::iso_strip_units(!!area_expr),
+      .V = isoreader::iso_strip_units(!!volume_expr)
+    ) %>%
     run_d15_calibration(
       standards = standards, organic = TRUE, quiet = quiet,
       infer_ref_gas = infer_ref_gas, infer_bgrd = infer_bgrd, infer_oblank = infer_oblank) %>%
-    select(-.d15, -.V, -.A)
+    select(-.d15, -.d15_orig, -.V, -.A)
 }
 
 #' runs the d15 calibration internally
@@ -377,7 +390,7 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
   if (is.null(data$.A)) stop(".A missing")
   if (organic && is.null(data$.V)) stop(".V missing")
 
-  stds.df <- data_frame(category = names(standards), .d15.true = standards)
+  stds.df <- tibble(category = names(standards), .d15.true = standards)
   stds.label <- (stds.df %>% mutate(label = paste0(category, " (", .d15.true, ")")))$label %>% paste(collapse = " & ")
 
   # go through (accounting for all grouping)
@@ -421,11 +434,15 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
         mutate(
           p.d15o_stds = stds.label,
           d15.ocal = (.d15  - bs_san$b0 - bs_san$b3 * .V * .AI - bs_san$b4 * .AI) / ( 1 + bs_san$b1 * .V * .AI + bs_san$b2 * .AI ))
+        d15_units <- isoreader::iso_get_units(out$.d15_orig)
+        if (!is.na(d15_units)) out$d15.ocal <- iso_double_with_units(out$d15.ocal, d15_units)
       } else {
         out <- sdf %>%
         mutate(
           p.d15_stds = stds.label,
           d15.cal = (.d15  - bs_san$b0 - bs_san$b4 * .AI) / ( 1 + bs_san$b2 * .AI ))
+        d15_units <- isoreader::iso_get_units(out$.d15_orig)
+        if (!is.na(d15_units)) out$d15.cal <- iso_double_with_units(out$d15.cal, d15_units)
       }
 
       # parameter reference gas
@@ -463,7 +480,7 @@ run_d15_calibration <- function(data, standards, organic, infer_ref_gas = TRUE, 
 
         # group info
         grps_text <- ""
-        if (!is.null(groups(data))) {
+        if (length(groups(data)) > 0) {
           grps <- groups(data) %>% as.character() %>% sapply(function(i) sdf[[i]][1])
           grps_text <- paste0("\n      Group: ", paste0(names(grps), " = ", grps) %>% paste(collapse = ", "))
         }
@@ -676,18 +693,23 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
   if (missing(cell_volume)) stop("please specify the denitrifier cells volume")
   if (length(standards) == 1) stop("sorry, single point correction is not currently supported")
 
-  stds.df <- data_frame(category = names(standards), d18.true = standards)
+  stds.df <- dplyr::tibble(category = names(standards), d18.true = standards)
   stds.label <- (stds.df %>% mutate(label = paste0(category, " (", d18.true, ")")))$label %>%
     paste(collapse = " & ")
 
-  fields <- list(
-    .d18 = interp(~var, var = substitute(d18)),
-    .amount = interp(~var, var = substitute(amount)),
-    .V = interp(~var, var = substitute(volume)),
-    .C_vial = ~.amount / (.V + cell_volume) # effective concentration
-  )
+  d18_expr <- rlang::enexpr(d18)
+  amount_expr <- rlang::enexpr(amount)
+  volume_expr <- rlang::enexpr(volume)
 
-  data %>% mutate_(.dots = fields) %>%
+  # run calibration
+  out <- data %>%
+    mutate(
+      .d18_orig = !!d18_expr,
+      .d18 = isoreader::iso_strip_units(.d18_orig),
+      .amount = !!amount_expr,
+      .V = isoreader::iso_strip_units(!!volume_expr),
+      .C_vial = .amount / (.V + !!cell_volume)
+    ) %>%
     do({
 
       if (any(.$.V > 100 * cell_volume, na.rm = TRUE)) {
@@ -723,6 +745,11 @@ calibrate_d18 <- function(data, d18, amount = amount, volume = volume, cell_volu
                (.d18 - p.d18_b - p.d18_m_conc * .C_vial)/
                (p.d18_m_true + `p.d18_m_true:conc` *.C_vial)
       )
-    }) %>%
-    select(-.d18, -.V, -.amount, -.C_vial)
+    })
+
+  # units
+  d18_units <- isoreader::iso_get_units(out$.d18_orig)
+  if (!is.na(d18_units)) out$d18.cal <- iso_double_with_units(out$d18.cal, d18_units)
+
+  return(select(out, -.d18, -.d18_orig, -.V, -.amount, -.C_vial))
 }

@@ -8,6 +8,10 @@
 #' @param quiet whether the function should output information messages or be quiet (default is to output)
 #' @export
 get_isodat_data_tables <- function(isodat_files, volume = "Identifier 2", quiet = FALSE) {
+
+  # deprecate
+  deprecate_for_switch_to_isoverse("get_isodat_data_tables()", "isoreader::iso_get_vendor_data_table()")
+
   df <- do.call(bind_rows, lapply(isodat_files, function(i) {
     mutate(i$get_data_table(),
            folder = basename(i$filepath),
@@ -46,10 +50,13 @@ select_N2O_peak <- function(data_table, peak_rt, quiet = FALSE) {
     stop("Peak retention time 'peak_rt' must be a single number or vector with two values c(from, to).", call. = FALSE)
   }
 
+  # find file id column
+  file_id_col <- if ("file_id" %in% names(df)) "file_id" else "file"
+
   if (!quiet) {
     sprintf("INFO: %s N2O peaks found in %s files (at retention time %ss), %s other peaks discarded.",
-            nrow(df), length(data_table$file %>% unique()), rt_msg, nrow(data_table) - nrow(df)) %>% message()
-    no_N2O_files <- setdiff(unique(data_table$file), unique(df$file))
+            nrow(df), length(data_table[[file_id_col]] %>% unique()), rt_msg, nrow(data_table) - nrow(df)) %>% message()
+    no_N2O_files <- setdiff(unique(data_table[[file_id_col]]), unique(df[[file_id_col]]))
     if ( length(no_N2O_files) > 0) {
       sprintf(
         paste("      NOTE that no N2O peak was found in the following files",
@@ -87,6 +94,10 @@ select_columns <- function(data, ..., quiet = FALSE) {
 #' @param quiet whether the function should output information messages or be quiet (default is to output)
 #' @export
 parse_file_names <- function(data, quiet = FALSE) {
+
+  # deprecate
+  deprecate_for_switch_to_isoverse("parse_file_names()", "isoreader::iso_mutate_file_info()")
+
   stopifnot("file" %in% names(data), "folder" %in% names(data))
 
   df <- data %>% group_by(folder) %>% do({
@@ -152,18 +163,14 @@ change_category <- function(data, criteria, value, quiet = FALSE) {
   if (missing(criteria)) stop("need to pass in a criterion to identify analyses")
   if (missing(value)) stop("need to pass in a value to change category too")
 
-  change <- list(
-    category = interp(~ifelse(var, value, category),
-                      var = substitute(criteria),
-                      val = value))
-  df <- data %>% mutate_(.dots = change)
+  criteria_quo <- rlang::enquo(criteria)
+  df <- data %>% mutate(category = dplyr::if_else(!!criteria_quo, !!value, category))
 
   if (!quiet) {
-    dots <- list(interp(~var, var = substitute(criteria)))
-    n <- data %>% filter_(.dots = dots) %>% nrow()
+    n <- data %>% filter(!!criteria_quo) %>% nrow()
     sprintf(
       "INFO: the category of %s analyses was changed to '%s' (by applying criteria '%s')",
-      n, value, deparse(substitute(criteria))) %>% message()
+      n, value, rlang::quo_text(criteria_quo)) %>% message()
   }
 
   return(df)
