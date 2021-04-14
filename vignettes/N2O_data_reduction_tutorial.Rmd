@@ -29,7 +29,9 @@ The package includes an example data set (`test_run`) to work with for testing a
 library(isoreader)
 root_folder <- system.file("extdata", package = "isorunN2O") 
 run_folders <- "test_run" # could be multiple, e.g. run_folders <- c("run1", "run2")
-iso_files <- iso_read_continuous_flow(run_folders, root = root_folder)
+iso_files <- iso_read_continuous_flow(run_folders, root = root_folder) %>%
+  # filter out files that have reading errors
+  iso_filter_files_with_problems()
 ```
 
 ## Raw data

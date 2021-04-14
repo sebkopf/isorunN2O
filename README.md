@@ -5,7 +5,6 @@
 
 [![Git\_Hub\_Version](https://img.shields.io/badge/GitHub-0.4.0-orange.svg?style=flat-square)](https://github.com/sebkopf/isorunN2O/commits)
 [![Documentation](https://img.shields.io/badge/docs-online-green.svg)](https://isorunn2o.kopflab.org/)
-[![Build Status](https://travis-ci.org/sebkopf/isorunN2O.svg?branch=master)](https://travis-ci.org/sebkopf/isorunN2O)
 
 This package facilitates the reading, processing and visualization of
 N2O isotope data including drift correction, 17O correction and
@@ -35,14 +34,14 @@ This version unfortunately is no longer supported on newer R versions.
 ## How to use?
 
 The package includes a tutorial that introduces most functionality and
-provides examples of how it works and can be used. After the `isorunN2O`
-package is installed, the newest version of this tutorial can always be
-loaded up as a vignette directly in R by calling
-`vignette("N2O_data_reduction_tutorial")` in the command line. The
-RMarkdown file underlying the vignette is also available [directly in
-this repository](vignettes/N2O_data_reduction_tutorial.Rmd) including
-the resulting [HTML
-output](https://rawgit.com/sebkopf/isorunN2O/master/inst/doc/N2O_data_reduction_tutorial.html).
+provides examples of how it works and can be used. Please see the
+documentation
+[here](https://isorunn2o.kopflab.org/articles/N2O_data_reduction_tutorial.html)
+for details. After the `isorunN2O` package is installed, the newest
+version of this tutorial can also be loaded up as a vignette directly in
+R by calling `vignette("N2O_data_reduction_tutorial")` in the command
+line. The RMarkdown file underlying the vignette is available [directly
+in this repository](vignettes/N2O_data_reduction_tutorial.Rmd).
 
 ## Additional functionality: N2O Data Viewer
 
